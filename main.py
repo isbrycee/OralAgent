@@ -165,14 +165,14 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        # "PanoramicXRayToothIdDetectionTool",
+        "PanoramicXRayToothIdDetectionTool",
         "PanoramicXRayBoneLossSegmentationTool",
         "PanoramicXRayDiseaseSegmentationTool",
         "PanoramicXRayToothIdDetectionTool",
         
 
         ################## for RAG ##################
-        # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
+        "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
     ]
 
 
