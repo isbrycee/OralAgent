@@ -493,8 +493,8 @@ class SwinTransformer(nn.Module):
         self.frozen_stages = frozen_stages
         self.dilation = dilation
 
-        if use_checkpoint:
-            print("use_checkpoint!!!!!!!!!!!!!!!!!!!!!!!!")
+        # if use_checkpoint:
+        #     print("use_checkpoint!!!!!!!!!!!!!!!!!!!!!!!!")
 
         # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(

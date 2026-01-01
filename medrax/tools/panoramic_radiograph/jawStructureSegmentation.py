@@ -35,36 +35,34 @@ import random
 from detectron2.data import Metadata
 
 
-class PanoramicXRayDiseaseSegmentationInput(BaseModel):
-    """Input schema for the Panoramic X-ray Disease Segmentation Tool."""
+class PanoramicXRayJawStructureSegmentationInput(BaseModel):
+    """Input schema for the Panoramic X-ray Jaw Structure Segmentation Tool."""
     image_path: str = Field(..., description="Path to the Panoramic X-ray image file to be processed")
-    diseases: Optional[List[str]] = Field(
+    structures: Optional[List[str]] = Field(
         None,
-        description="A list of disease names to detect in panoramic X-ray images. If set to None, the tool will detect all available diseases. "
-        "The available diseases include: "
-        "Caries, Crown, Filling, Implant, Mandibular Canal, Missing teeth, Periapical lesion, "
-        "Root Canal Treatment, Root Piece, Impacted tooth, and Maxillary sinus. "
-        "This list allows users to specify targeted diseases for detection or perform a comprehensive analysis of all supported categories."
+        description="A list of disease names to segment in panoramic X-ray images. If set to None, the tool will segment all available structures. "
+        "The available jaw structures include: Mandibular Canal and Maxillary Sinus. "
+        "This list allows users to specify targeted structures for segmentation or perform a comprehensive analysis of all supported categories."
     )
 
-class PanoramicXRayDiseaseSegmentationOutput(BaseModel):
-    """Output schema for MaskDINO Disease Segmentation Tool."""
-    segments: List[Dict[str, Any]] = Field(..., description="List of segmented regions with their properties")
+
+class PanoramicXRayJawStructureSegmentationOutput(BaseModel):
+    """Output schema for MaskDINO Jaw Structure Segmentation Tool."""
+    segments: List[Dict[str, Any]] = Field(..., description="List of segmented jaw structures with their properties")
 
 
-class PanoramicXRayDiseaseSegmentationTool(BaseTool):
-    """Tool for performing disease segmentation analysis of panoramic X-ray images using MaskDINO."""
+class PanoramicXRayJawStructureSegmentationTool(BaseTool):
+    """Tool for performing jaw structure segmentation analysis of panoramic X-ray images using MaskDINO."""
 
-    name: str = "panoramic_xray_disease_segmentation"
+    name: str = "panoramic_xray_jawStructure_segmentation"
     description: str = (
-        "Detects and segments regions of diseases and anatomical structures in panoramic X-ray images."
+        "Detects and segments regions of jaw structures in panoramic X-ray images. "
         "This tool can identify the following categories: "
-        "Caries, Crown, Filling, Implant, Mandibular Canal, Missing teeth, Periapical lesion, "
-        "Root Canal Treatment, Root Piece, Impacted tooth, and Maxillary sinus. "
-        "Returns segmentation visualization for each detected category."
+        "Mandibular Canal and Maxillary Sinus. "
+        "Returns segmentation visualization for each detected structure."
     )
 
-    args_schema: Type[BaseModel] = PanoramicXRayDiseaseSegmentationInput
+    args_schema: Type[BaseModel] = PanoramicXRayJawStructureSegmentationInput
     temp_dir: Path = Path("temp")
     cfg: Any = None
     demo: Any = None
@@ -74,12 +72,12 @@ class PanoramicXRayDiseaseSegmentationTool(BaseTool):
     category_metadata: Any = None
 
     def __init__(self, config_path: str, checkpoint_path: str, coco_names_path: str, confidence_threshold: float = 0.3, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
-        """Initialize the MaskDINO Disease Segmentation Tool."""
+        """Initialize the MaskDINO Jaw Structure Segmentation Tool."""
         super().__init__()
         self.cfg = self._setup_cfg(config_path, checkpoint_path, confidence_threshold)
         self.coco_names_path = coco_names_path
         self.id2name = self._load_category_names()
-        self.category_metadata = self._load_category_metadata('panoramic_X-ray_11diseases')
+        self.category_metadata = self._load_category_metadata('panoramic_X-ray_2jawStructures')
         self.demo = VisualizationDemo(self.cfg, self.category_metadata)
         self.device = device
         self.temp_dir = temp_dir if isinstance(temp_dir, Path) else Path(temp_dir)
@@ -101,21 +99,21 @@ class PanoramicXRayDiseaseSegmentationTool(BaseTool):
     def _run(
         self,
         image_path: str,
-        diseases: Optional[List[str]] = None,
+        structures: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> Tuple[Dict[str, Any], Dict]:
-        """Run segmentation analysis for specified diseases (currently supports 11 diseases and anatomical structures in panoramic X-ray images)."""
+        """Run segmentation analysis for specified jaw structures (currently supports Mandibular Canal and Maxillary Sinus in panoramic X-ray images)."""
         try:
             # Validate and get disease indices
             supportive_vategories = list(self.id2name.values())
 
-            if diseases:
-                diseases = [d.strip() for d in diseases]
-                invalid_diseases = [d for d in diseases if d not in supportive_vategories]
-                if invalid_diseases:
-                    raise ValueError(f"Invalid diseases specified: {invalid_diseases}")
+            if structures:
+                structures = [d.strip() for d in structures]
+                invalid_structures = [d for d in structures if d not in supportive_vategories]
+                if invalid_structures:
+                    raise ValueError(f"Invalid structures specified: {invalid_structures}")
             else:
-                diseases = supportive_vategories
+                structures = supportive_vategories
 
             # Read the image
             img = read_image(image_path, format="BGR")
@@ -135,7 +133,7 @@ class PanoramicXRayDiseaseSegmentationTool(BaseTool):
 
                 for mask, score, label in zip(masks, scores, labels):
                     category_name = self.id2name[label]
-                    if category_name not in diseases:
+                    if category_name not in structures:
                         continue
                     
                     # 获取外接四边形
@@ -190,11 +188,11 @@ class PanoramicXRayDiseaseSegmentationTool(BaseTool):
     async def _arun(
         self,
         image_path: str,
-        diseases: Optional[List[str]] = None,
+        structures: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> Tuple[Dict[str, Any], Dict]:
         """Async version of _run."""
-        return self._run(image_path, diseases)
+        return self._run(image_path, structures)
 
     def _load_category_names(self):
         """Load category names from COCO format."""

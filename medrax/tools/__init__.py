@@ -15,6 +15,7 @@ from .panoramic_radiograph.toothIdDetection import *
 from .panoramic_radiograph.boneLossSegmentation import *
 from .panoramic_radiograph.diseaseSegmentation import *
 from .panoramic_radiograph.periapicalLesionSubClassDetection import *
+from .panoramic_radiograph.jawStructureSegmentation import *
 
 ###################### for RAG ######################
 from .rag import *
