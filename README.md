@@ -1,3 +1,23 @@
+
+## Citation
+If you find this work useful, please cite our paper:
+```bibtex
+@article{oralgpt2025,
+  title={Towards Better Dental AI: A Multimodal Benchmark and Instruction Dataset for Panoramic X-ray Analysis},
+  author={Hao, Jing and Fan, Yuxuan and Sun, Yanpeng and Guo, Kaixin and Lin, Lizhuo and Yang, Jinrong and Ai, Qi Yong H and Wong, Lun M and Tang, Hao and Hung, Kuo Feng},
+  journal={arXiv preprint arXiv:2509.09254},
+  year={2025}
+}
+@article{hao2025oralgpt,
+  title={OralGPT-Omni: A Versatile Dental Multimodal Large Language Model},
+  author={Hao, Jing and Liang, Yuci and Lin, Lizhuo and Fan, Yuxuan and Zhou, Wenkai and Guo, Kaixin and Ye, Zanting and Sun, Yanpeng and Zhang, Xinyu and Yang, Yanqi and others},
+  journal={arXiv preprint arXiv:2511.22055},
+  year={2025}
+}
+```
+
+<!--
+
 <h1 align="center">
 🤖 MedRAX: Medical Reasoning Agent for Chest X-ray
 </h1>
@@ -279,3 +299,5 @@ If you find this work useful, please cite our paper:
 <p align="center">
 Made with ❤️ at University of Toronto, Vector Institute, and University Health Network
 </p>
+
+-->
