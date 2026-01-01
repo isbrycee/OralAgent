@@ -172,7 +172,7 @@ if __name__ == "__main__":
         
 
         ################## for RAG ##################
-        "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
+        # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
     ]
 
 
