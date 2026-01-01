@@ -2,7 +2,7 @@
 ## Citation
 If you find this work useful, please cite our paper:
 ```bibtex
-@article{oralgpt2025,
+@article{hao2025mmoral,
   title={Towards Better Dental AI: A Multimodal Benchmark and Instruction Dataset for Panoramic X-ray Analysis},
   author={Hao, Jing and Fan, Yuxuan and Sun, Yanpeng and Guo, Kaixin and Lin, Lizhuo and Yang, Jinrong and Ai, Qi Yong H and Wong, Lun M and Tang, Hao and Hung, Kuo Feng},
   journal={arXiv preprint arXiv:2509.09254},
@@ -13,6 +13,16 @@ If you find this work useful, please cite our paper:
   author={Hao, Jing and Liang, Yuci and Lin, Lizhuo and Fan, Yuxuan and Zhou, Wenkai and Guo, Kaixin and Ye, Zanting and Sun, Yanpeng and Zhang, Xinyu and Yang, Yanqi and others},
   journal={arXiv preprint arXiv:2511.22055},
   year={2025}
+}
+@article{hao2025oraldataset,
+  title={Characteristics, licensing, and ethical considerations of openly accessible oral-maxillofacial imaging datasets: a systematic review},
+  author={Hao, Jing and Nalley, Andrew and Yeung, Andy Wai Kan and Tanaka, Ray and Ai, Qi Yong H and Lam, Walter Yu Hang and Shan, Zhiyi and Leung, Yiu Yan and AlHadidi, Abeer and Bornstein, Michael M and others},
+  journal={npj Digital Medicine},
+  volume={8},
+  number={1},
+  pages={412},
+  year={2025},
+  publisher={Nature Publishing Group UK London}
 }
 ```
 
