@@ -5,7 +5,7 @@ If you find this work useful, please cite our paper:
 @article{hao2025mmoral,
   title={Towards Better Dental AI: A Multimodal Benchmark and Instruction Dataset for Panoramic X-ray Analysis},
   author={Hao, Jing and Fan, Yuxuan and Sun, Yanpeng and Guo, Kaixin and Lin, Lizhuo and Yang, Jinrong and Ai, Qi Yong H and Wong, Lun M and Tang, Hao and Hung, Kuo Feng},
-  journal={arXiv preprint arXiv:2509.09254},
+  journal={NeurIPS 2025},
   year={2025}
 }
 @article{hao2025oralgpt,
