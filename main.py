@@ -79,6 +79,7 @@ def initialize_agent(
         "DicomProcessorTool": lambda: DicomProcessorTool(temp_dir=temp_dir),
         
         ###################### add by bryce ######################
+        # for Panoramic X-ray modality
         "PanoramicXRayToothIdDetectionTool": lambda: PanoramicXRayToothDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.pth", 
@@ -113,6 +114,16 @@ def initialize_agent(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.pth", 
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.json", 
+            confidence_threshold=0.3,
+            temp_dir=temp_dir,
+            device=device
+        ),
+
+        # for Periapical X-ray modality
+        "PeriapicalXRayDiseaseSegmentationTool": lambda: PeriapicalXRayDiseaseSegmentationTool(
+            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.yaml",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.json", 
             confidence_threshold=0.3,
             temp_dir=temp_dir,
             device=device
@@ -175,7 +186,8 @@ if __name__ == "__main__":
         "PanoramicXRayBoneLossSegmentationTool",
         "PanoramicXRayDiseaseSegmentationTool",
         "PanoramicXRayToothIdDetectionTool",
-        "PanoramicXRayJawStructureSegmentationTool"
+        "PanoramicXRayJawStructureSegmentationTool",
+        "PeriapicalXRayDiseaseSegmentationTool"
         
 
         ################## for RAG ##################
@@ -222,4 +234,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8588, share=True)
+    demo.launch(server_name="0.0.0.0", server_port=8519, share=True)

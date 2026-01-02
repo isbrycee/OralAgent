@@ -17,5 +17,7 @@ from .panoramic_radiograph.diseaseSegmentation import *
 from .panoramic_radiograph.periapicalLesionSubClassDetection import *
 from .panoramic_radiograph.jawStructureSegmentation import *
 
+from .periapical_radiograph.diseaseSegmentation import *
+
 ###################### for RAG ######################
 from .rag import *
