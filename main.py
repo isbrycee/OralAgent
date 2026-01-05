@@ -87,7 +87,7 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
-        "PanoramicXRayToothIdDetectionTool": lambda: PanoramicXRayPeriapicalLesionSubClassDetectionTool(
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool": lambda: PanoramicXRayPeriapicalLesionSubClassDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.pth", 
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.json", 
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         "PanoramicXRayToothIdDetectionTool",
         "PanoramicXRayBoneLossSegmentationTool",
         "PanoramicXRayDiseaseSegmentationTool",
-        "PanoramicXRayToothIdDetectionTool",
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
         "PanoramicXRayJawStructureSegmentationTool",
         "PeriapicalXRayDiseaseSegmentationTool",
         "CephalometricXRayLandmarkDetectionTool"
