@@ -129,6 +129,15 @@ def initialize_agent(
             device=device
         ),
 
+        # for Cephalometric X-ray modality
+        "CephalometricXRayLandmarkDetectionTool": lambda: CephalometricXRayLandmarkDetectionTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth", 
+            prototype_path=f"{model_dir}/config_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.json",
+            image_size=(512, 512),
+            temp_dir=temp_dir,
+            device=device
+        ),
 
         ###################### for RAG ######################
         "MedicalRAGTool": lambda: RAGTool(config=rag_config),
@@ -187,7 +196,8 @@ if __name__ == "__main__":
         "PanoramicXRayDiseaseSegmentationTool",
         "PanoramicXRayToothIdDetectionTool",
         "PanoramicXRayJawStructureSegmentationTool",
-        "PeriapicalXRayDiseaseSegmentationTool"
+        "PeriapicalXRayDiseaseSegmentationTool",
+        "CephalometricXRayLandmarkDetectionTool"
         
 
         ################## for RAG ##################
@@ -234,4 +244,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8519, share=True)
+    demo.launch(server_name="0.0.0.0", server_port=8519, share=False)
