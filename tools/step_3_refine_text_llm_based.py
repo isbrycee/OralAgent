@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 from openai import OpenAI
 from tqdm import tqdm
+import argparse
+
 # =========================
 # 配置
 # =========================
-
-# 模型名称：将来有 gpt-5 时可以改为 "gpt-5"
 
 client = OpenAI(
     api_key="sk-",
@@ -334,8 +334,6 @@ def process_folder(input_dir: str, output_dir: str):
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="使用 LLM (如 gpt-4.1 / gpt-5) 对口腔医学教材 JSON 做相关性判断与清洗。"
     )
@@ -346,5 +344,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     global MODEL_NAME
     MODEL_NAME = args.model
-
+    
     process_folder(args.input_dir, args.output_dir)
