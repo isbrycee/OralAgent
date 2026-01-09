@@ -25,6 +25,9 @@ from tqdm import tqdm
 import logging
 import time
 
+from .qwen3_embedding import Qwen3Embeddings
+from .qwen3_rerank import Qwen3Reranker
+
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -99,8 +102,13 @@ class CohereRAG:
         """Initialize RAG system with given configuration."""
         self.config = config
         self.chat_model = ChatCohere(model=config.model, temperature=config.temperature)
-        self.embeddings = CohereEmbeddings(model=config.embedding_model)
-        self.reranker = CohereRerank(model=config.rerank_model)
+
+        # self.embeddings = CohereEmbeddings(model=config.embedding_model)
+        # self.reranker = CohereRerank(model=config.rerank_model)
+
+        self.embeddings = Qwen3Embeddings(model_name=config.embedding_model)
+        self.reranker = Qwen3Reranker(model_name=config.rerank_model)
+
         self.persist_dir = config.persist_dir
         self.local_docs_dir = config.local_docs_dir
         self.memory = ConversationBufferMemory(
@@ -210,15 +218,14 @@ class CohereRAG:
         """
         if self.vectorstore is None:
             print("Creating new vectorstore...")
-            documents = documents[:10000]  # Limit to first 1000 documents for initial creation # note here !!!!
+            documents = documents[:100]  # Limit to first 1000 documents for initial creation # note here !!!!
 
             self.vectorstore = Chroma(
                 embedding_function=self.embeddings,
                 persist_directory=self.persist_dir,
             )
-
             # 分批添加文档
-            batch_size = 10  # 每批处理 10 个文档
+            batch_size = 20  # 每批处理 10 个文档
             batches = [documents[i:i + batch_size] for i in range(0, len(documents), batch_size)]
 
             for i, batch in enumerate(batches):
@@ -302,7 +309,7 @@ class CohereRAG:
 
         return RetrievalQA.from_chain_type(**chain_kwargs)
 
-
+    ## Add by Bryce
     def initialize_rag_wo_llm(self, query: str) -> List[dict]:
         """Initialize RAG chain with optional conversation memory.
         Args:

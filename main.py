@@ -191,17 +191,17 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        "PanoramicXRayToothIdDetectionTool",
-        "PanoramicXRayBoneLossSegmentationTool",
-        "PanoramicXRayDiseaseSegmentationTool",
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        "PanoramicXRayJawStructureSegmentationTool",
-        "PeriapicalXRayDiseaseSegmentationTool",
-        "CephalometricXRayLandmarkDetectionTool"
+        # "PanoramicXRayToothIdDetectionTool",
+        # "PanoramicXRayBoneLossSegmentationTool",
+        # "PanoramicXRayDiseaseSegmentationTool",
+        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        # "PanoramicXRayJawStructureSegmentationTool",
+        # "PeriapicalXRayDiseaseSegmentationTool",
+        # "CephalometricXRayLandmarkDetectionTool"
         
 
         ################## for RAG ##################
-        # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
+        "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
     ]
 
 
@@ -209,7 +209,9 @@ if __name__ == "__main__":
     # Configure the Retrieval Augmented Generation (RAG) system
     # This allows the agent to access and use medical knowledge documents
     rag_config = RAGConfig(
-        model="command-a-03-2025",  # Set COHERE_API_KEY in .env
+        model="command-a-03-2025",  # Invalid in current version; TODO: support Qwen3 model
+        embedding_model="Qwen/Qwen3-Embedding-0.6B",
+        rerank_model="Qwen/Qwen3-Reranker-0.6B",
         temperature=0.7,
         persist_dir="medrax/rag/vectorDB",  # Change this to the target path of the vector database
         chunk_size=1000,
@@ -244,4 +246,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8519, share=False)
+    demo.launch(server_name="0.0.0.0", server_port=8510, share=True)
