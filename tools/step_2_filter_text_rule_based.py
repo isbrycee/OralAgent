@@ -62,7 +62,7 @@ def clean_json_folder(input_dir: str, output_dir: str):
         name, ext = os.path.splitext(filename)
         filename = f"{name}_filter_rule_based{ext}"
         output_path = os.path.join(output_dir, filename)
-
+        
         try:
             clean_json_file(input_path, output_path)
             print(f"已处理：{filename}")
