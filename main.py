@@ -210,8 +210,8 @@ if __name__ == "__main__":
     # This allows the agent to access and use medical knowledge documents
     rag_config = RAGConfig(
         model="command-a-03-2025",  # Invalid in current version; TODO: support Qwen3 model
-        embedding_model="Qwen/Qwen3-Embedding-0.6B",
-        rerank_model="Qwen/Qwen3-Reranker-0.6B",
+        embedding_model="Qwen/Qwen3-Embedding-0.6B", # "4B, 8B"
+        rerank_model="Qwen/Qwen3-Reranker-0.6B", # "4B, 8B"
         temperature=0.7,
         persist_dir="medrax/rag/vectorDB",  # Change this to the target path of the vector database
         chunk_size=1000,
