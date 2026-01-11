@@ -72,6 +72,7 @@ class Agent:
         intent_recognition_model: str = "Qwen/Qwen3-0.6B", # add by Bryce
         checkpointer: Any = None,
         system_prompt: str = "",
+        intent_recognition_prompt: str = "",
         log_tools: bool = True,
         log_dir: Optional[str] = "logs",
     ):
@@ -87,6 +88,7 @@ class Agent:
             log_dir (str, optional): Directory to save logs. Defaults to 'logs'.
         """
         self.system_prompt = system_prompt
+        self.intent_recognition_prompt = intent_recognition_prompt
         self.log_tools = log_tools
 
         if self.log_tools:
@@ -303,31 +305,9 @@ class Agent:
             str: The recognized intent.
         """
         # Tokenize the input query
-        SYSTEM_PROMPT = """
-        You are an AI assistant specialized in identifying user intents within the domain of dentistry.
-        Note that user intent refers to the goal or purpose the user wants to achieve through interacting with the large language model, 
-        not just the literal meaning of the user’s input. Please ensure you deeply understand the user’s needs and accurately extract their core intent.
-        Given any user input, including questions, instructions, or descriptions, your task is to accurately recognize and generate the underlying intent.
-        
-        Possible user intent include, but are not limited to:
-        • Visual description (e.g., describing visual apparence or conditions of dental images)
-        • Disease diagnosis
-        • Subtyping, staging, grading, and classification of conditions
-        • Treatment planning
-        • Prognosis prediction
-        • Disease prevention
-        • Dental knowledge look‑up
-        • Other oral‑medicine–related intents
-
-        Always identify the user’s intent clearly and unambiguously. Your output must be follow for format of the following sentence:
-        The user’s intent: <YOUR OUTPUT>. 
-
-        Note that the output should only contain the intent without any additional explanations or answers to users' questions.
-        """
-
         text = self.intent_recognition_tokenizer.apply_chat_template(
             [
-                {"role": "system", "content": SYSTEM_PROMPT},  # System prompt
+                {"role": "system", "content": self.intent_recognition_prompt},  # System prompt
                 {"role": "user", "content": query}  # User query
             ],
             tokenize=False,

@@ -59,6 +59,7 @@ def initialize_agent(
     # Load system prompts from file
     prompts = load_prompts_from_file(prompt_file)
     prompt = prompts["MEDICAL_ASSISTANT"]
+    prompt_for_intent_recognition = prompts["INTENT_RECOGNITION_ASSISTANT"]
 
     # Define all available tools with their initialization functions
     all_tools = {
@@ -81,24 +82,16 @@ def initialize_agent(
         ###################### add by bryce ######################
         # for Panoramic X-ray modality
         "PanoramicXRayToothIdDetectionTool": lambda: PanoramicXRayToothDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool": lambda: PanoramicXRayPeriapicalLesionSubClassDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.pth", 
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.json", 
             temp_dir=temp_dir,
             device=device
         ),
-        "PanoramicXRayBoneLossSegmentationTool": lambda: PanoramicXRayBoneLossSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.json", 
-            confidence_threshold=0.3,
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool": lambda: PanoramicXRayPeriapicalLesionSubClassDetectionTool(
+            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.py",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.json", 
             temp_dir=temp_dir,
             device=device
         ),
@@ -138,7 +131,7 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
-
+        
         ###################### for RAG ######################
         "MedicalRAGTool": lambda: RAGTool(config=rag_config),
     }
@@ -163,6 +156,7 @@ def initialize_agent(
         log_tools=True,
         log_dir="logs",
         system_prompt=prompt,
+        intent_recognition_prompt=prompt_for_intent_recognition,
         checkpointer=checkpointer,
     )
 
@@ -191,14 +185,14 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        # "PanoramicXRayToothIdDetectionTool",
-        # "PanoramicXRayBoneLossSegmentationTool",
-        # "PanoramicXRayDiseaseSegmentationTool",
-        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        # "PanoramicXRayJawStructureSegmentationTool",
-        # "PeriapicalXRayDiseaseSegmentationTool",
-        # "CephalometricXRayLandmarkDetectionTool"
-        
+        "PanoramicXRayToothIdDetectionTool",
+        "PanoramicXRayBoneLossSegmentationTool",
+        "PanoramicXRayDiseaseSegmentationTool",
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        "PanoramicXRayJawStructureSegmentationTool",
+        "PeriapicalXRayDiseaseSegmentationTool",
+        "CephalometricXRayLandmarkDetectionTool"
+    
 
         ################## for RAG ##################
         "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
@@ -246,4 +240,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8510, share=True)
+    demo.launch(server_name="0.0.0.0", server_port=8551, share=True)
