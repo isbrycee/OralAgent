@@ -218,7 +218,7 @@ class CohereRAG:
         """
         if self.vectorstore is None:
             print("Creating new vectorstore...")
-            # documents = documents[:100]  # Limit to first 1000 documents for initial creation # note here !!!!
+            documents = documents[:500]  # Limit to first 1000 documents for initial creation # note here !!!!
 
             self.vectorstore = Chroma(
                 embedding_function=self.embeddings,
