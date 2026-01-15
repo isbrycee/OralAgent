@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # Example: initialize with only specific tools
     # Here three tools are commented out, you can uncomment them to use them
     selected_tools = [
-        "ImageVisualizerTool", # For displaying images in the UI
+        # "ImageVisualizerTool", # For displaying images in the UI
         # "DicomProcessorTool",
         # "ChestXRayClassifierTool",
         # "ChestXRaySegmentationTool",
@@ -185,15 +185,14 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        "PanoramicXRayToothIdDetectionTool",
-        "PanoramicXRayBoneLossSegmentationTool",
-        "PanoramicXRayDiseaseSegmentationTool",
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        "PanoramicXRayJawStructureSegmentationTool",
-        "PeriapicalXRayDiseaseSegmentationTool",
+        # "PanoramicXRayToothIdDetectionTool",
+        # "PanoramicXRayBoneLossSegmentationTool",
+        # "PanoramicXRayDiseaseSegmentationTool",
+        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        # "PanoramicXRayJawStructureSegmentationTool",
+        # "PeriapicalXRayDiseaseSegmentationTool",
         "CephalometricXRayLandmarkDetectionTool"
     
-
         ################## for RAG ##################
         "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
     ]
