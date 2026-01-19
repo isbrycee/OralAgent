@@ -1,6 +1,5 @@
 import warnings
 from dotenv import load_dotenv
-from langserve import add_routes
 from langchain_openai import ChatOpenAI
 from medrax.agent import Agent
 from medrax.utils import load_prompts_from_file
@@ -10,7 +9,6 @@ from langchain_core.runnables import Runnable
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel
 import time
 import uuid
@@ -102,8 +100,8 @@ async def startup_event():
     agent, thread = get_agent(tools, prompt_file=PROMPT_FILE, model_name=model_name, temperature=temperature)
     print("OralAgent successfully initialized and ready to use.")
 
-    for route in OralAgent.routes:
-        print(route.path, route.name)
+    # for route in OralAgent.routes:
+    #     print(route.path, route.name)
 
 
 # 添加 API 路由
@@ -131,37 +129,12 @@ def run_agent_endpoint(request: ChatCompletionRequest):
                     }
                 }
             ],
-            
+
             # "state": state,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # # Define the paths and device
-    # expert_model_dir = "/data/OralGPT/OralGPT-expert-model-repository"  # Replace with the actual path to the model directory
-    # temp_dir = "temp"   # Replace with the actual path to the temporary directory
-    # device = "cuda"     # Replace with "cuda" or "cpu" based on your setup
-    # model_name = "gpt-5-nano"
-    # temperature = 0.2
-
-    # # Setup directory paths
-    # ROOT = "/home/jinghao/projects/OralGPT-Agent/OralAgent"  # Set this directory to where MedRAX is
-    # PROMPT_FILE = f"{ROOT}/medrax/docs/system_prompts.txt"
-
-    # # Initialize tools
-    # tools = get_tools(
-    #     model_dir=expert_model_dir,
-    #     temp_dir=temp_dir,
-    #     device=device
-    # )
-    
-    # # Start the agent
-    # agent, thread = get_agent(tools, prompt_file=PROMPT_FILE, model_name=model_name, temperature=temperature)
-    # print("Agent successfully initialized and ready to use.")
-
-    # for route in OralAgent.routes:
-    #     print(route.path, route.name)
-
     import uvicorn
     uvicorn.run("launch_OralAgent:OralAgent", host="0.0.0.0", port=8124, reload=True)
