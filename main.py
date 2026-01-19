@@ -63,21 +63,21 @@ def initialize_agent(
 
     # Define all available tools with their initialization functions
     all_tools = {
-        "ChestXRayClassifierTool": lambda: ChestXRayClassifierTool(device=device),
-        "ChestXRaySegmentationTool": lambda: ChestXRaySegmentationTool(device=device),
-        "LlavaMedTool": lambda: LlavaMedTool(cache_dir=model_dir, device=device, load_in_8bit=True),
-        "XRayVQATool": lambda: XRayVQATool(cache_dir=model_dir, device=device),
-        "ChestXRayReportGeneratorTool": lambda: ChestXRayReportGeneratorTool(
-            cache_dir=model_dir, device=device
-        ),
-        "XRayPhraseGroundingTool": lambda: XRayPhraseGroundingTool(
-            cache_dir=model_dir, temp_dir=temp_dir, load_in_8bit=True, device=device
-        ),
-        "ChestXRayGeneratorTool": lambda: ChestXRayGeneratorTool(
-            model_path=f"{model_dir}/roentgen", temp_dir=temp_dir, device=device
-        ),
-        "ImageVisualizerTool": lambda: ImageVisualizerTool(),
-        "DicomProcessorTool": lambda: DicomProcessorTool(temp_dir=temp_dir),
+        # "ChestXRayClassifierTool": lambda: ChestXRayClassifierTool(device=device),
+        # "ChestXRaySegmentationTool": lambda: ChestXRaySegmentationTool(device=device),
+        # "LlavaMedTool": lambda: LlavaMedTool(cache_dir=model_dir, device=device, load_in_8bit=True),
+        # "XRayVQATool": lambda: XRayVQATool(cache_dir=model_dir, device=device),
+        # "ChestXRayReportGeneratorTool": lambda: ChestXRayReportGeneratorTool(
+        #     cache_dir=model_dir, device=device
+        # ),
+        # "XRayPhraseGroundingTool": lambda: XRayPhraseGroundingTool(
+        #     cache_dir=model_dir, temp_dir=temp_dir, load_in_8bit=True, device=device
+        # ),
+        # "ChestXRayGeneratorTool": lambda: ChestXRayGeneratorTool(
+        #     model_path=f"{model_dir}/roentgen", temp_dir=temp_dir, device=device
+        # ),
+        # "ImageVisualizerTool": lambda: ImageVisualizerTool(),
+        # "DicomProcessorTool": lambda: DicomProcessorTool(temp_dir=temp_dir),
         
         ###################### add by bryce ######################
         # for Panoramic X-ray modality

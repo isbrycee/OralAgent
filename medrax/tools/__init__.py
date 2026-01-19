@@ -23,3 +23,5 @@ from .cephalometric_radiograph.cephalometricLandmarkDetection import *
 
 ###################### for RAG ######################
 from .rag import *
+
+from .get_tools import get_tools
