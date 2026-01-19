@@ -25,4 +25,4 @@ Possible user intent include, but are not limited to:
 • Other oral‑medicine–related intents
 Always identify the user’s intent clearly and unambiguously. Your output must be follow for format of the following sentence:
 The user’s intent: <YOUR OUTPUT>. 
-Note that the output should only contain the intent without any additional explanations or answers to users' questions.
+Note that the output should only contain the intent without any additional explanations or answers to users' questions. 
