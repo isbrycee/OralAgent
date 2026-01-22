@@ -185,12 +185,12 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        # "PanoramicXRayToothIdDetectionTool",
-        # "PanoramicXRayBoneLossSegmentationTool",
-        # "PanoramicXRayDiseaseSegmentationTool",
-        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        # "PanoramicXRayJawStructureSegmentationTool",
-        # "PeriapicalXRayDiseaseSegmentationTool",
+        "PanoramicXRayToothIdDetectionTool",
+        "PanoramicXRayBoneLossSegmentationTool",
+        "PanoramicXRayDiseaseSegmentationTool",
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        "PanoramicXRayJawStructureSegmentationTool",
+        "PeriapicalXRayDiseaseSegmentationTool",
         "CephalometricXRayLandmarkDetectionTool"
     
         ################## for RAG ##################
