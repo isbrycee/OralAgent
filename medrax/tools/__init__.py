@@ -21,6 +21,15 @@ from .periapical_radiograph.diseaseSegmentation import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
 
+from .intraoral_image.conditionDetection import *
+from .intraoral_image.gingivitisDetection import *
+from .intraoral_image.fenestrationDetection import *
+from .intraoral_image.malocclusionIssuesDetection import *
+
+from .cytopathology.cellNucleusSegmentation import *
+from .cytopathology.cellNucleusGrading import *
+from .histopathology.OSCCSegmentation import *
+
 ###################### for RAG ######################
 from .rag import *
 

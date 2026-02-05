@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import time
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List, Tuple, Optional
 
 def detect_lang_from_dirname(dirname: str) -> Optional[Tuple[str, str]]:
@@ -45,11 +46,12 @@ def find_pdf_jobs(base_path: Path) -> List[Tuple[Path, str, Path]]:
                 jobs.append((pdf, lang_code, rel_output_subdir))
     return jobs
 
-def process_pdf(pdf_path: Path, lang_code: str, output_dir: Path, device: str) -> bool:
-    """Process single PDF file with mineru."""
-    print(f"Processing: {pdf_path}")
-    print(f"Language: {lang_code}")
-    print(f"Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+def process_pdf(pdf_path: Path, lang_code: str, output_dir: Path, device: str, quiet: bool = False) -> bool:
+    """Process single PDF file with mineru. When quiet=True, no print (for parallel workers)."""
+    if not quiet:
+        print(f"Processing: {pdf_path}")
+        print(f"Language: {lang_code}")
+        print(f"Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,25 +65,37 @@ def process_pdf(pdf_path: Path, lang_code: str, output_dir: Path, device: str) -
     ]
 
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✓ {pdf_path.name} processing completed")
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        if not quiet:
+            print(f"✓ {pdf_path.name} processing completed")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ {pdf_path.name} processing failed: {e}")
-        print(f"Error output: {e.stderr}")
+        if not quiet:
+            print(f"✗ {pdf_path.name} processing failed: {e}")
+            print(f"Error output: {e.stderr}")
         return False
     except Exception as e:
-        print(f"✗ {pdf_path.name} exception occurred: {e}")
+        if not quiet:
+            print(f"✗ {pdf_path.name} exception occurred: {e}")
         return False
     finally:
-        print(f"End time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("-" * 50)
+        if not quiet:
+            print(f"End time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print("-" * 50)
+
+
+def _process_one_job(args: Tuple) -> Tuple[bool, Path]:
+    """Worker entry: (pdf_path, lang_code, output_dir, device) -> (success, pdf_path)."""
+    pdf_path, lang_code, output_dir, device = args
+    ok = process_pdf(pdf_path, lang_code, output_dir, device, quiet=True)
+    return (ok, pdf_path)
 
 def main():
     parser = argparse.ArgumentParser(description="Batch process PDFs under CN/EN folders with mineru.")
     parser.add_argument("-r", "--root", type=str, default="/data/OralGPT/OralGPT-text-corpus", help="Data root directory containing subfolders with CN/EN folders.")
     parser.add_argument("-o", "--output", type=str, default="/data/OralGPT/OralGPT-text-corpus-processed", help="Output directory to save all processed results.")
     parser.add_argument("--device", type=str, default="cuda", help="Device for mineru (e.g., cuda:0 or cpu).")
+    parser.add_argument("-j", "--jobs", type=int, default=None, help="Number of parallel workers (default: CPU count).")
     args = parser.parse_args()
 
     base_path = Path(args.root).expanduser().resolve()
@@ -100,24 +114,41 @@ def main():
         print("No PDF files found under CN/EN folders.")
         return
 
+    n_workers = args.jobs if args.jobs is not None else (os.cpu_count() or 4)
     print(f"Found {total_files} PDF file(s) to process.")
+    print(f"Using {n_workers} parallel worker(s).")
+    print("=" * 60)
 
     successful = 0
     failed = 0
     start_time = time.time()
 
-    for i, (pdf_path, lang_code, rel_output_subdir) in enumerate(jobs, 1):
-        print(f"\n[{i}/{total_files}] Starting processing...")
-        # Keep a clean structure under a single OUTPUT_DIR to avoid name collisions.
-        # This still satisfies “保存到一个文件夹中” (everything under one top-level folder),
-        # while preserving substructure: OUTPUT_DIR/<first_level>/<CN_or_EN_dir>/
+    job_args = []
+    for pdf_path, lang_code, rel_output_subdir in jobs:
         out_dir = output_base / rel_output_subdir
+        job_args.append((pdf_path, lang_code, out_dir, args.device))
 
-        ok = process_pdf(pdf_path, lang_code, out_dir, args.device)
-        if ok:
-            successful += 1
-        else:
-            failed += 1
+    completed = 0
+    with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        future_to_idx = {executor.submit(_process_one_job, ja): i for i, ja in enumerate(job_args)}
+        for future in as_completed(future_to_idx):
+            completed += 1
+            idx = future_to_idx[future]
+            pdf_path = jobs[idx][0]
+            try:
+                ok, _ = future.result()
+                if ok:
+                    successful += 1
+                    status = "OK"
+                else:
+                    failed += 1
+                    status = "FAILED"
+            except Exception as e:
+                failed += 1
+                status = f"ERROR: {e}"
+            elapsed = time.time() - start_time
+            eta = (elapsed / completed) * (total_files - completed) if completed < total_files else 0
+            print(f"[{completed}/{total_files}] {pdf_path.name} -> {status} (elapsed: {elapsed:.1f}s, ETA: {eta:.1f}s)", flush=True)
 
     total_time = time.time() - start_time
 
