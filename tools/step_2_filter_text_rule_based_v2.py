@@ -13,6 +13,8 @@ STEP2_OUTPUT_SUFFIX = "_step2_filter_rule_based.json"
 
 # 句子结尾符号（中英文）
 SENTENCE_END_CHARS = set("。.!?！？;；…")
+# 以这些符号结尾视为未结束，必须与下一段合并（顿号、全角逗号等）
+INCOMPLETE_END_CHARS = set("、，,")
 
 
 def load_json(path: str) -> Any:
@@ -71,9 +73,16 @@ def extract_table_caption(nodes: List[Dict[str, Any]]) -> str:
 
 
 def has_sentence_end(text: str) -> bool:
-    """检查文本是否以句子结尾符号结束（视为完整句子）。"""
+    """检查文本是否以句子结尾符号结束（视为完整句子）。
+    以顿号、全角逗号等结尾视为未结束，返回 False，以便与下一段合并。
+    """
     t = (text or "").strip()
-    return len(t) > 0 and t[-1] in SENTENCE_END_CHARS
+    if len(t) == 0:
+        return False
+    # 以顿号、全角逗号结尾的视为未结束，需要与下一段合并
+    if t[-1] in INCOMPLETE_END_CHARS:
+        return False
+    return t[-1] in SENTENCE_END_CHARS
 
 
 def filter_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
