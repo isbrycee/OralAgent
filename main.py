@@ -161,6 +161,12 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
+        "IntraoralImageAbnormal9ClassificationTool": lambda: IntraoralImageAbnormal9ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.safetensors", 
+            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.json",
+            temp_dir=temp_dir,
+            device=device
+        ),
 
         
         # for Cytopathology modality
@@ -190,6 +196,24 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
+        "HistopathologyOSCC5ClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.safetensors", 
+            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.json",
+            temp_dir=temp_dir,
+            device=device
+        ),
+        "HistopathologyLeukoplakia3ClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.safetensors", 
+            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.json",
+            temp_dir=temp_dir,
+            device=device
+        ),
+        "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
+            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.json",
+            temp_dir=temp_dir,
+            device=device
+        ),
 
         ###################### for RAG ######################
         "MedicalRAGTool": lambda: RAGTool(config=rag_config),
@@ -206,11 +230,17 @@ def initialize_agent(
     # Set up checkpointing for conversation state
     checkpointer = MemorySaver()
     # Initialize the language model
-    model = ChatOpenAI(model=model, temperature=temperature, top_p=top_p, **openai_kwargs)
+    model = ChatOpenAI(model=model, temperature=temperature, **openai_kwargs)
+    intent_classifier_model = BioMedCLIPClassifier(
+        checkpoint_path=f"{model_dir}/OralGPT_Visual_Intention_Model_BiomedCLIP_CLIP_Multimodal_9Classification.pth",
+        coco_names_path=f"{model_dir}/OralGPT_Visual_Intention_Model_BiomedCLIP_CLIP_Multimodal_9Classification.json", 
+        num_classes=9
+        )
 
     # Create the agent with the specified model, tools, and configuration
     agent = Agent(
         model,
+        intent_classifier_model=intent_classifier_model,
         tools=list(tools_dict.values()),
         log_tools=True,
         log_dir="logs",
@@ -250,19 +280,23 @@ if __name__ == "__main__":
         # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
         # "PanoramicXRayJawStructureSegmentationTool",
         # "PeriapicalXRayDiseaseSegmentationTool",
-        # "CephalometricXRayLandmarkDetectionTool",
+        "CephalometricXRayLandmarkDetectionTool",
         # "IntraoralImageConditionDetectionTool",
         # "IntraoralImageGingivitisDetectionTool",
         # "IntraoralImageFenestrationDetectionTool",
         # "IntraoralImageMalocclusionIssuesDetectionTool",
+        "IntraoralImageAbnormal9ClassificationTool",
         
-        "CytopathologyCellNucleusSegmentationTool",
-        "HistopathologyOSCCSegmentationTool",
-        "CytopathologyCellNucleusGradingTool",
+        # "CytopathologyCellNucleusSegmentationTool",
+        # "HistopathologyOSCCSegmentationTool",
+        # "CytopathologyCellNucleusGradingTool",
+        # "HistopathologyOSCC5ClassificationTool",
+        # "HistopathologyLeukoplakia3ClassificationTool",
+        # "HistopathologyOSCCMulti6ClassificationTool",
         
         
         ################## for RAG ##################
-        "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
+        # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
     ]
 
 
@@ -294,13 +328,13 @@ if __name__ == "__main__":
     agent, tools_dict = initialize_agent(
         "medrax/docs/system_prompts.txt",
         tools_to_use=selected_tools,
-        model_dir="/data/OralGPT/OralGPT-expert-model-repository",  # Change this to the path of the model weights
+        model_dir="model_dir",  # Change this to the path of the model weights
         temp_dir="temp",  # Change this to the path of the temporary directory
         device="cuda",  # Change this to the device you want to use
-        model="gpt-5-nano",  # Change this to the model you want to use, e.g. gpt-4o-mini
+        model="gpt-5-mini",  # Change this to the model you want to use, e.g. gpt-4o-mini
         temperature=0.7,
-        top_p=0.95,
-        rag_config=rag_config,
+        # top_p=0.95,
+        # rag_config=rag_config,
         openai_kwargs=openai_kwargs
     )
 

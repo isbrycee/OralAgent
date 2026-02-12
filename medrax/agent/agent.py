@@ -70,6 +70,7 @@ class Agent:
         model: BaseLanguageModel,
         tools: List[BaseTool],
         intent_recognition_model: str = "Qwen/Qwen3-0.6B", # add by Bryce
+        intent_classifier_model: Any = None,
         checkpointer: Any = None,
         system_prompt: str = "",
         intent_recognition_prompt: str = "",
@@ -115,6 +116,7 @@ class Agent:
             torch_dtype="auto",
             device_map="auto"
         )
+        self.modality_classifier = intent_classifier_model
         
     def process_request(self, state: AgentState) -> Dict[str, List[AnyMessage]]:
         """
@@ -232,11 +234,36 @@ class Agent:
 
         user_text_query = self.extract_text_content(user_input)
         user_image_query = self.extract_image_content(state["messages"])
+        for msg in state['messages']:
+            if isinstance(msg, dict) and "content" in msg:
+                content = msg["content"]
+                if isinstance(content, str) and "image_path:" in content:
+                    image_path = content.split("image_path:")[1].strip()
+                    break
+        modality_info = ""
+        if image_path and self.modality_classifier:
+            try:
+                modality_result = self.modality_classifier.predict(image_path)
+                modality_info = (
+                    f"This is a {modality_result['modality']} image "
+                    f"with {modality_result['confidence']:.2f} confidence."
+                )
+                print(f"modality_info: {modality_info}")
+            except Exception as e:
+                print(f"Modality classification error: {e}")
+
 
         user_intent = self.recognize_intent(user_text_query)
         print("user_intent: ", user_intent)
 
-        processed_user_query = f"The user's query: {user_text_query}\n{user_intent}"
+        enriched_query = f"The user's query: {user_text_query}\n"
+        enriched_query += f"Intent recognition: {user_intent}\n"
+        if modality_info:
+            enriched_query += f"{modality_info}\n"
+            enriched_query += "Please select the most appropriate tool based on the image modality above."
+        print(f"user_intent with clip classification: \n{enriched_query}")
+
+        processed_user_query = f"The user's query: {user_text_query}\n{enriched_query}"
         next(item.update({"text": processed_user_query}) for item in state["messages"][-1]['content'] if item.get("type") == "text")
 
         return state

@@ -1,14 +1,14 @@
 """Tools for the Medical Agent."""
 
-from .classification import *
-from .report_generation import *
-from .segmentation import *
-from .xray_vqa import *
-from .llava_med import *
-from .grounding import *
-from .generation import *
-from .dicom import *
-from .utils import *
+# from .classification import *
+# from .report_generation import *
+# from .segmentation import *
+# from .xray_vqa import *
+# from .llava_med import *
+# from .grounding import *
+# from .generation import *
+# from .dicom import *
+# from .utils import *
 
 ###################### add by bryce ######################
 from .panoramic_radiograph.toothIdDetection import *
@@ -25,10 +25,16 @@ from .intraoral_image.conditionDetection import *
 from .intraoral_image.gingivitisDetection import *
 from .intraoral_image.fenestrationDetection import *
 from .intraoral_image.malocclusionIssuesDetection import *
+from .intraoral_image.abnormal9classification import *
 
 from .cytopathology.cellNucleusSegmentation import *
 from .cytopathology.cellNucleusGrading import *
 from .histopathology.OSCCSegmentation import *
+from .histopathology.OSCC5Classification import *
+from .histopathology.Leukoplakia3Classification import *
+from .histopathology.OSCCMulti6Clasification import *
+
+from .model_CLIP.clip_classifier import *
 
 ###################### for RAG ######################
 from .rag import *
