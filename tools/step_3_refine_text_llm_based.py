@@ -216,6 +216,146 @@ page_idx：{page_idx}
 {{"keep": true/false, "cleaned_text": "..."}}。
 """
 
+# @dataclass
+# class CleanResult:
+#     keep: bool
+#     cleaned_text: str
+
+
+# def call_llm_clean(text: str, page_idx: int, file_name: str) -> CleanResult:
+#     """
+#     调用 LLM 对单条文本进行：相关性判断 + 清洗。
+#     """
+#     if not text or text.strip() == "":
+#         # 空文本，直接丢弃
+#         return CleanResult(keep=False, cleaned_text="")
+
+#     messages = [
+#         {"role": "system", "content": CLEANING_SYSTEM_PROMPT},
+#         {"role": "user", "content": build_user_prompt(text, page_idx, file_name)},
+#     ]
+
+#     response = client.chat.completions.create(
+#         model=MODEL_NAME,
+#         messages=messages,
+#         temperature=0.0,
+#         max_tokens=8192,
+#     )
+
+#     content = response.choices[0].message.content.strip()
+
+#     # 尝试解析 JSON
+#     try:
+#         data = json.loads(content)
+#         keep = bool(data.get("keep", False))
+#         cleaned_text = data.get("cleaned_text", "")
+#         # 保险：如果 keep=True 但 cleaned_text 为空，则视为不保留
+#         if keep and (not cleaned_text or cleaned_text.strip() == ""):
+#             keep = False
+#             cleaned_text = ""
+#         return CleanResult(keep=keep, cleaned_text=cleaned_text.strip())
+#     except Exception as e:
+#         # 解析异常时，可以选择：
+#         # 1) 丢弃该文本
+#         # 2) 或者保留原始文本（这里选 1 比较安全）
+#         print(f"[WARN] 解析 LLM 输出失败，丢弃该文本。错误：{e}\nLLM 输出：{content}\n")
+#         return CleanResult(keep=False, cleaned_text="")
+
+
+# # =========================
+# # 主处理逻辑
+# # =========================
+
+# def process_single_file(input_path: str, output_path: str):
+#     """
+#     处理单个 *_filter_rule_base.json 文件：
+#     - 加载原始 JSON 列表
+#     - 对每个 item.text 调用 LLM 做判断和清洗
+#     - 仅保留 keep=True 的 item，替换 text 为 cleaned_text
+#     - 将结果保存为新的 JSON 文件
+#     """
+#     file_name = os.path.basename(input_path)
+#     print(f"Processing file: {file_name}")
+
+#     with open(input_path, "r", encoding="utf-8") as f:
+#         try:
+#             data = json.load(f)
+#         except Exception as e:
+#             print(f"[ERROR] 读取 JSON 失败：{input_path}，错误：{e}")
+#             return
+
+#     if not isinstance(data, list):
+#         print(f"[WARN] 文件不是列表结构，跳过：{input_path}")
+#         return
+
+#     cleaned_items: List[Dict[str, Any]] = []
+
+#     for idx, item in tqdm(enumerate(data)):
+#         if not isinstance(item, dict):
+#             continue
+
+#         text = item.get("text", "")
+#         page_idx = item.get("page_idx", -1)
+
+#         result = call_llm_clean(text, page_idx, file_name)
+
+#         if result.keep:
+#             new_item = dict(item)
+#             new_item["text"] = result.cleaned_text
+#             cleaned_items.append(new_item)
+
+#         if (idx + 1) % 20 == 0:
+#             print(f"  已处理 {idx + 1}/{len(data)} 条...  当前保留 {len(cleaned_items)} 条")
+
+#     # 将清洗后的列表写入新文件
+#     with open(output_path, "w", encoding="utf-8") as f:
+#         json.dump(cleaned_items, f, ensure_ascii=False, indent=2)
+
+#     print(f"完成：{file_name}  原始条数 {len(data)}，保留 {len(cleaned_items)} 条。输出：{output_path}")
+
+
+# def process_folder(input_dir: str, output_dir: str):
+#     """
+#     遍历文件夹，处理所有以 '_filter_rule_base.json' 结尾的文件。
+#     """
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     for fname in os.listdir(input_dir):
+#         if not fname.endswith("_filter_rule_based.json"):
+#             continue
+
+#         input_path = os.path.join(input_dir, fname)
+#         # 输出文件名可加一个后缀，例如 _llm_cleaned.json
+#         base_name, _ = os.path.splitext(fname)
+#         output_fname = base_name + "_llm_cleaned.json"
+#         output_path = os.path.join(output_dir, output_fname)
+
+#         process_single_file(input_path, output_path)
+
+
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         description="使用 LLM (如 gpt-4.1 / gpt-5) 对口腔医学教材 JSON 做相关性判断与清洗。"
+#     )
+#     parser.add_argument("--input_dir", type=str, default="/home/jinghao/projects/OralGPT-Agent/Corpus/step_2_rule_filter", help="输入文件夹路径（包含 *_filter_rule_base.json）")
+#     parser.add_argument("--output_dir", type=str, default="/home/jinghao/projects/OralGPT-Agent/Corpus/step_3_llm_refine", help="输出文件夹路径（保存清洗后的 JSON）")
+#     parser.add_argument("--model", type=str, default="gpt-5-nano", help="LLM 模型名称，例如 gpt-4.1 或未来的 gpt-5")
+
+#     args = parser.parse_args()
+#     global MODEL_NAME
+#     MODEL_NAME = args.model
+    
+#     process_folder(args.input_dir, args.output_dir)
+
+
+import os
+import json
+import argparse
+from dataclasses import dataclass
+from typing import List, Dict, Any
+from tqdm import tqdm
+
+
 @dataclass
 class CleanResult:
     keep: bool
@@ -227,7 +367,6 @@ def call_llm_clean(text: str, page_idx: int, file_name: str) -> CleanResult:
     调用 LLM 对单条文本进行：相关性判断 + 清洗。
     """
     if not text or text.strip() == "":
-        # 空文本，直接丢弃
         return CleanResult(keep=False, cleaned_text="")
 
     messages = [
@@ -244,35 +383,26 @@ def call_llm_clean(text: str, page_idx: int, file_name: str) -> CleanResult:
 
     content = response.choices[0].message.content.strip()
 
-    # 尝试解析 JSON
     try:
         data = json.loads(content)
         keep = bool(data.get("keep", False))
         cleaned_text = data.get("cleaned_text", "")
-        # 保险：如果 keep=True 但 cleaned_text 为空，则视为不保留
         if keep and (not cleaned_text or cleaned_text.strip() == ""):
             keep = False
             cleaned_text = ""
         return CleanResult(keep=keep, cleaned_text=cleaned_text.strip())
     except Exception as e:
-        # 解析异常时，可以选择：
-        # 1) 丢弃该文本
-        # 2) 或者保留原始文本（这里选 1 比较安全）
         print(f"[WARN] 解析 LLM 输出失败，丢弃该文本。错误：{e}\nLLM 输出：{content}\n")
         return CleanResult(keep=False, cleaned_text="")
 
 
-# =========================
-# 主处理逻辑
-# =========================
-
 def process_single_file(input_path: str, output_path: str):
     """
-    处理单个 *_filter_rule_base.json 文件：
+    处理单个 *_filter_rule_based.json 文件：
     - 加载原始 JSON 列表
     - 对每个 item.text 调用 LLM 做判断和清洗
     - 仅保留 keep=True 的 item，替换 text 为 cleaned_text
-    - 将结果保存为新的 JSON 文件
+    - 将结果保存为新的 JSON 文件（与输入同目录，加 _llm_cleaned 后缀）
     """
     file_name = os.path.basename(input_path)
     print(f"Processing file: {file_name}")
@@ -290,7 +420,7 @@ def process_single_file(input_path: str, output_path: str):
 
     cleaned_items: List[Dict[str, Any]] = []
 
-    for idx, item in tqdm(enumerate(data)):
+    for idx, item in tqdm(enumerate(data), total=len(data)):
         if not isinstance(item, dict):
             continue
 
@@ -307,42 +437,75 @@ def process_single_file(input_path: str, output_path: str):
         if (idx + 1) % 20 == 0:
             print(f"  已处理 {idx + 1}/{len(data)} 条...  当前保留 {len(cleaned_items)} 条")
 
-    # 将清洗后的列表写入新文件
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(cleaned_items, f, ensure_ascii=False, indent=2)
 
     print(f"完成：{file_name}  原始条数 {len(data)}，保留 {len(cleaned_items)} 条。输出：{output_path}")
 
 
-def process_folder(input_dir: str, output_dir: str):
+def looks_like_filter_based(fname: str) -> bool:
     """
-    遍历文件夹，处理所有以 '_filter_rule_base.json' 结尾的文件。
+    判断是否为需要处理的输入文件：
+    - 以 '_filter_rule_based.json' 结尾
+    - 排除已清洗输出（包含 '_llm_cleaned.json'）
     """
-    os.makedirs(output_dir, exist_ok=True)
+    lower = fname.lower()
+    if lower.endswith("_llm_cleaned.json"):
+        return False
+    return lower.endswith("_filter_rule_based.json")
 
-    for fname in os.listdir(input_dir):
-        if not fname.endswith("_filter_rule_based.json"):
+
+def process_all_in_middle(root_dir: str, overwrite: bool = False, followlinks: bool = True):
+    """
+    从根目录递归遍历。
+    在每一层目录：
+      - 如果该目录包含 *_filter_rule_based.json，则逐个处理，并在同目录输出 *_filter_rule_based_llm_cleaned.json；
+      - 处理后视为该层即为目标“中间层”，不再深入其子目录（剪枝）。
+    """
+    if not os.path.isdir(root_dir):
+        print(f"提供的路径不是目录：{root_dir}")
+        return
+
+    found = 0
+    for dirpath, dirnames, filenames in os.walk(root_dir, topdown=True, followlinks=followlinks):
+        matches = [fn for fn in filenames if looks_like_filter_based(fn)]
+        if matches:
+            for fname in matches:
+                input_path = os.path.join(dirpath, fname)
+                base, _ = os.path.splitext(fname)
+                output_fname = base + "_llm_cleaned.json"
+                output_path = os.path.join(dirpath, output_fname)
+
+                if (not overwrite) and os.path.exists(output_path):
+                    print(f"[SKIP] 已存在输出，跳过：{output_path}")
+                    continue
+
+                try:
+                    process_single_file(input_path, output_path)
+                    found += 1
+                except Exception as e:
+                    print(f"[ERROR] 处理失败：{input_path} -> {e}")
+
+            # 剪枝：该层已定位为目标“中间层”，不再进入子目录
+            dirnames[:] = []
             continue
 
-        input_path = os.path.join(input_dir, fname)
-        # 输出文件名可加一个后缀，例如 _llm_cleaned.json
-        base_name, _ = os.path.splitext(fname)
-        output_fname = base_name + "_llm_cleaned.json"
-        output_path = os.path.join(output_dir, output_fname)
+        # 未匹配则继续深入子目录
 
-        process_single_file(input_path, output_path)
+    if found == 0:
+        print("未在目录中找到任何 *_filter_rule_based.json。")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="使用 LLM (如 gpt-4.1 / gpt-5) 对口腔医学教材 JSON 做相关性判断与清洗。"
+        description="递归查找并清洗所有 *_filter_rule_based.json，输出到同目录 *_filter_rule_based_llm_cleaned.json。"
     )
-    parser.add_argument("--input_dir", type=str, default="/home/jinghao/projects/OralGPT-Agent/Corpus/step_2_rule_filter", help="输入文件夹路径（包含 *_filter_rule_base.json）")
-    parser.add_argument("--output_dir", type=str, default="/home/jinghao/projects/OralGPT-Agent/Corpus/step_3_llm_refine", help="输出文件夹路径（保存清洗后的 JSON）")
-    parser.add_argument("--model", type=str, default="gpt-5-nano", help="LLM 模型名称，例如 gpt-4.1 或未来的 gpt-5")
-
+    parser.add_argument("--root_dir", type=str, required=True, help="根目录（包含多级子目录）")
+    parser.add_argument("--model", type=str, default="gpt-5-nano", help="LLM 模型名称")
+    parser.add_argument("--overwrite", action="store_true", help="若已存在输出文件，是否覆盖")
     args = parser.parse_args()
+    
     global MODEL_NAME
     MODEL_NAME = args.model
-    
-    process_folder(args.input_dir, args.output_dir)
+
+    process_all_in_middle(args.root_dir, overwrite=args.overwrite)

@@ -15,7 +15,7 @@ import argparse
 MAX_PARSE_RETRIES = 4
 
 client = OpenAI(
-    api_key="sk-5wBUzhruz8YG9feBqih9fffj3DrOglMb49KWZFZPC75Z8e8R",
+    api_key="sk-",
     base_url="https://www.dmxapi.cn/v1/"
 )
 
