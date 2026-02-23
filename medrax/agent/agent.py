@@ -65,6 +65,17 @@ class Agent:
         log_path (Path): Path to save tool call logs.
     """
 
+    # Default templates when not loaded from file (keys: user_text_query, user_intent, modality_section)
+    _DEFAULT_ENRICHED_QUERY_TEMPLATE = (
+        "The user's query: {user_text_query}\n"
+        "Intent recognition: {user_intent}\n"
+        "{modality_section}"
+    )
+    _DEFAULT_MODALITY_SECTION_TEMPLATE = (
+        "Image modality: {modality}\n"
+        "Please select the most appropriate tools based on the image modality above."
+    )
+
     def __init__(
         self,
         model: BaseLanguageModel,
@@ -74,6 +85,8 @@ class Agent:
         checkpointer: Any = None,
         system_prompt: str = "",
         intent_recognition_prompt: str = "",
+        enriched_query_template: Optional[str] = None,
+        modality_section_template: Optional[str] = None,
         log_tools: bool = True,
         log_dir: Optional[str] = "logs",
     ):
@@ -85,11 +98,21 @@ class Agent:
             tools (List[BaseTool]): A list of available tools.
             checkpointer (Any, optional): State persistence manager. Defaults to None.
             system_prompt (str, optional): System instructions. Defaults to "".
+            enriched_query_template (str, optional): Template for enriched user query with placeholders
+                {user_text_query}, {user_intent}, {modality_section}. Defaults to built-in template.
+            modality_section_template (str, optional): Template for image modality section with
+                {modality}, {confidence}. Used only when user provides an image. Defaults to built-in.
             log_tools (bool, optional): Whether to log tool calls. Defaults to True.
             log_dir (str, optional): Directory to save logs. Defaults to 'logs'.
         """
         self.system_prompt = system_prompt
         self.intent_recognition_prompt = intent_recognition_prompt
+        self.enriched_query_template = (
+            enriched_query_template or self._DEFAULT_ENRICHED_QUERY_TEMPLATE
+        )
+        self.modality_section_template = (
+            modality_section_template or self._DEFAULT_MODALITY_SECTION_TEMPLATE
+        )
         self.log_tools = log_tools
 
         if self.log_tools:
@@ -233,38 +256,43 @@ class Agent:
         print("user_input:", user_input)
 
         user_text_query = self.extract_text_content(user_input)
-        user_image_query = self.extract_image_content(state["messages"])
-        for msg in state['messages']:
+        self.extract_image_content(state["messages"])  # may be used elsewhere
+
+        image_path = None
+        for msg in state["messages"]:
             if isinstance(msg, dict) and "content" in msg:
                 content = msg["content"]
                 if isinstance(content, str) and "image_path:" in content:
                     image_path = content.split("image_path:")[1].strip()
                     break
-        modality_info = ""
+
+        modality_section = ""
         if image_path and self.modality_classifier:
             try:
                 modality_result = self.modality_classifier.predict(image_path)
-                modality_info = (
-                    f"This is a {modality_result['modality']} image "
-                    f"with {modality_result['confidence']:.2f} confidence."
+                modality_section = self.modality_section_template.format(
+                    modality=modality_result["modality"],
+                    # confidence=f"{modality_result['confidence']:.2f}",
                 )
-                print(f"modality_info: {modality_info}")
+                # print(f"modality_section: {modality_section}")
             except Exception as e:
                 print(f"Modality classification error: {e}")
 
-
         user_intent = self.recognize_intent(user_text_query)
-        print("user_intent: ", user_intent)
+        # print("user_intent: ", user_intent)
 
-        enriched_query = f"The user's query: {user_text_query}\n"
-        enriched_query += f"Intent recognition: {user_intent}\n"
-        if modality_info:
-            enriched_query += f"{modality_info}\n"
-            enriched_query += "Please select the most appropriate tool based on the image modality above."
-        print(f"user_intent with clip classification: \n{enriched_query}")
+        processed_user_query = self.enriched_query_template.format(
+            user_text_query=user_text_query or "",
+            user_intent=user_intent,
+            modality_section=modality_section,
+        )
+        print(f"enriched query:\n{processed_user_query}")
 
-        processed_user_query = f"The user's query: {user_text_query}\n{enriched_query}"
-        next(item.update({"text": processed_user_query}) for item in state["messages"][-1]['content'] if item.get("type") == "text")
+        next(
+            item.update({"text": processed_user_query})
+            for item in state["messages"][-1]["content"]
+            if item.get("type") == "text"
+        )
 
         return state
 

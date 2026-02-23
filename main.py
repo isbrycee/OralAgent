@@ -58,8 +58,10 @@ def initialize_agent(
 
     # Load system prompts from file
     prompts = load_prompts_from_file(prompt_file)
-    prompt = prompts["MEDICAL_ASSISTANT"]
+    system_prompt = prompts["MEDICAL_ASSISTANT"]
     prompt_for_intent_recognition = prompts["INTENT_RECOGNITION_ASSISTANT"]
+    enriched_query_template = prompts.get("ENRICHED_QUERY_TEMPLATE")
+    modality_section_template = prompts.get("MODALITY_SECTION_TEMPLATE")
 
     # Define all available tools with their initialization functions
     all_tools = {
@@ -231,9 +233,10 @@ def initialize_agent(
     checkpointer = MemorySaver()
     # Initialize the language model
     model = ChatOpenAI(model=model, temperature=temperature, **openai_kwargs)
+
     intent_classifier_model = BioMedCLIPClassifier(
-        checkpoint_path=f"{model_dir}/OralGPT_Visual_Intention_Model_BiomedCLIP_CLIP_Multimodal_9Classification.pth",
-        coco_names_path=f"{model_dir}/OralGPT_Visual_Intention_Model_BiomedCLIP_CLIP_Multimodal_9Classification.json", 
+        checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_9modalities.pth",
+        coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_9modalities.json", 
         num_classes=9
         )
 
@@ -244,8 +247,10 @@ def initialize_agent(
         tools=list(tools_dict.values()),
         log_tools=True,
         log_dir="logs",
-        system_prompt=prompt,
+        system_prompt=system_prompt,
         intent_recognition_prompt=prompt_for_intent_recognition,
+        enriched_query_template=enriched_query_template,
+        modality_section_template=modality_section_template,
         checkpointer=checkpointer,
     )
 
@@ -274,22 +279,28 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        # "PanoramicXRayToothIdDetectionTool",
-        # "PanoramicXRayBoneLossSegmentationTool",
-        # "PanoramicXRayDiseaseSegmentationTool",
-        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        # "PanoramicXRayJawStructureSegmentationTool",
-        # "PeriapicalXRayDiseaseSegmentationTool",
+        "PanoramicXRayToothIdDetectionTool",
+        "PanoramicXRayBoneLossSegmentationTool",
+        "PanoramicXRayDiseaseSegmentationTool",
+        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        "PanoramicXRayJawStructureSegmentationTool",
+        "PeriapicalXRayDiseaseSegmentationTool",
+
         "CephalometricXRayLandmarkDetectionTool",
-        # "IntraoralImageConditionDetectionTool",
-        # "IntraoralImageGingivitisDetectionTool",
-        # "IntraoralImageFenestrationDetectionTool",
-        # "IntraoralImageMalocclusionIssuesDetectionTool",
-        "IntraoralImageAbnormal9ClassificationTool",
+        
+        "IntraoralImageConditionDetectionTool",
+        "IntraoralImageGingivitisDetectionTool",
+        "IntraoralImageFenestrationDetectionTool",
+        "IntraoralImageMalocclusionIssuesDetectionTool",
+
+
+        # "IntraoralImageAbnormal9ClassificationTool",
         
         # "CytopathologyCellNucleusSegmentationTool",
         # "HistopathologyOSCCSegmentationTool",
+        
         # "CytopathologyCellNucleusGradingTool",
+
         # "HistopathologyOSCC5ClassificationTool",
         # "HistopathologyLeukoplakia3ClassificationTool",
         # "HistopathologyOSCCMulti6ClassificationTool",
@@ -305,15 +316,16 @@ if __name__ == "__main__":
     # This allows the agent to access and use medical knowledge documents
     rag_config = RAGConfig(
         model="command-a-03-2025",  # Invalid in current version; TODO: support Qwen3 model
-        embedding_model="Qwen/Qwen3-Embedding-0.6B", # "4B, 8B"
-        rerank_model="Qwen/Qwen3-Reranker-0.6B", # "4B, 8B"
+        embedding_model="Qwen/Qwen3-Embedding-8B",  # "0.6B, 4B, 8B"
+        rerank_model="Qwen/Qwen3-Reranker-8B",  # "0.6B, 4B, 8B"
         temperature=0.7,
-        persist_dir="medrax/rag/vectorDB",  # Change this to the target path of the vector database
-        chunk_size=1000,
-        chunk_overlap=100,
         retriever_k=3,
-        local_docs_dir="medrax/rag/docs",  # Change this to the path of the documents for RAG
-        use_medrag_textbooks=True,  # Set to True if you want to use the MedRAG textbooks dataset
+        persist_dir="medrax/rag/",  # Base path for vector DB; subdir added when use_OralCorpus=True
+        use_OralCorpus=True,  # Set to True to load Oral corpus when creating vectorstore
+        corpus_language="chinese",  # "english" -> vectorDB_OralCorpus_English, "chinese" -> vectorDB_OralCorpus_Chinese
+        local_docs_dir="",  # Path to Oral corpus (EN or CN) for RAG; also used for custom docs
+        chunk_size=1000,  # Only valid for private documents
+        chunk_overlap=100,  # Only valid for private documents
     )
 
     # Prepare OpenAI API configuration from environment variables
@@ -328,13 +340,13 @@ if __name__ == "__main__":
     agent, tools_dict = initialize_agent(
         "medrax/docs/system_prompts.txt",
         tools_to_use=selected_tools,
-        model_dir="model_dir",  # Change this to the path of the model weights
+        model_dir="/data/OralGPT/OralGPT-expert-model-repository",  # Change this to the path of the model weights
         temp_dir="temp",  # Change this to the path of the temporary directory
         device="cuda",  # Change this to the device you want to use
         model="gpt-5-mini",  # Change this to the model you want to use, e.g. gpt-4o-mini
         temperature=0.7,
         # top_p=0.95,
-        # rag_config=rag_config,
+        rag_config=rag_config,
         openai_kwargs=openai_kwargs
     )
 
