@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -7,16 +8,26 @@ from openai import OpenAI
 from tqdm import tqdm
 import argparse
 
+try:
+    import httpcore
+except ImportError:
+    httpcore = None  # type: ignore
+
 # =========================
 # 配置
 # =========================
 
 # JSON 解析失败时最多重新调用 LLM 的次数（不含首次），共最多调用 1 + 此值 次
-MAX_PARSE_RETRIES = 4
+MAX_PARSE_RETRIES = 2
+# API 请求超时时间（秒），网络慢或接口慢时可适当调大
+API_TIMEOUT = 300.0
+# 连接/读取超时时的重试次数（每次间隔 2 秒）
+API_TIMEOUT_RETRIES = 3
 
 client = OpenAI(
     api_key="sk-",
-    base_url="https://www.dmxapi.cn/v1/"
+    base_url="https://www.dmxapi.cn/v1/",
+    timeout=API_TIMEOUT,
 )
 
 # =========================
@@ -459,12 +470,27 @@ def call_llm_clean(text: str, file_name: str, language: str = "ch") -> CleanResu
     max_attempts = 1 + MAX_PARSE_RETRIES  # 共 5 次
 
     for attempt in range(max_attempts):
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=messages,
-            temperature=0.0,
-            max_tokens=8192,
-        )
+        response = None
+        for _ in range(API_TIMEOUT_RETRIES):
+            try:
+                response = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=messages,
+                    temperature=0.0,
+                    max_tokens=8192,
+                )
+                break
+            except Exception as e:
+                is_timeout = (
+                    (httpcore is not None and isinstance(e, (httpcore.ConnectTimeout, httpcore.ReadTimeout)))
+                    or (type(e).__name__ in ("ConnectTimeout", "ReadTimeout", "TimeoutException"))
+                )
+                if is_timeout and _ < API_TIMEOUT_RETRIES - 1:
+                    time.sleep(2)
+                    continue
+                raise
+        if response is None:
+            raise RuntimeError("API 请求未得到响应")
         content = response.choices[0].message.content.strip()
         try:
             data = json.loads(content)
@@ -662,18 +688,25 @@ def process_root(input_root: str, output_root: str, concurrency: int = 5):
         print(f"[WARN] 在 {input_root} 下未找到任何路径含 {REQUIRED_DIR_IN_PATH}/ 的 *{STEP2_FILENAME_SUFFIX} 文件。")
         return
 
-    print(f"共发现 {len(files)} 个 step2 文件，并行数 concurrency={concurrency}，开始处理。")
-    for i, input_path in enumerate(files, 1):
+    # 过滤掉已有 step3_llm_cleaned.json 的 step2 文件（已处理过则跳过）
+    to_process = []
+    for input_path in files:
         rel = os.path.relpath(input_path, input_root)
-        # 输出保持相对路径，仅将文件名改为 _llm_cleaned.json
         dir_rel = os.path.dirname(rel)
         base_name = os.path.basename(input_path)
         stem = base_name[: -len(STEP2_FILENAME_SUFFIX)] if base_name.endswith(STEP2_FILENAME_SUFFIX) else base_name
         output_fname = stem + "_step3_llm_cleaned.json"
         output_path = os.path.join(output_root, dir_rel, output_fname)
+        if os.path.isfile(output_path):
+            print(f"[跳过] 已存在 {output_path}，跳过 step2 文件：{input_path}")
+            continue
+        to_process.append((input_path, output_path))
+
+    print(f"共发现 {len(files)} 个 step2 文件，其中 {len(to_process)} 个待处理（已存在 step3 的已跳过），并行数 concurrency={concurrency}，开始处理。")
+    for i, (input_path, output_path) in enumerate(to_process, 1):
         process_single_file(input_path, output_path, concurrency=concurrency)
-        if i < len(files):
-            print(f"[{i}/{len(files)}] 已处理。")
+        if i < len(to_process):
+            print(f"[{i}/{len(to_process)}] 已处理。")
 
 
 if __name__ == "__main__":
@@ -683,20 +716,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input_root",
         type=str,
-        default="/home/jinghao/projects/OralGPT-Agent/Corpus",
+        default="/data/OralGPT/OralGPT-text-corpus-processed",
         help="输入根目录。将递归查找 子目录/.../hybrid_auto/*_step2_filter_rule_based.json",
     )
     parser.add_argument(
         "--output_root",
         type=str,
-        default="/data/OralGPT/OralGPT-text-corpus-demo/",
+        default="/data/OralGPT/OralGPT-text-corpus-processed",
         help="输出根目录。输出保持与输入相同的相对路径，文件名为 *_step3_llm_cleaned.json",
     )
     parser.add_argument("--model", type=str, default="gpt-5-nano", help="LLM 模型名称")
     parser.add_argument(
         "--concurrency",
         type=int,
-        default=5,
+        default=64,
         help="同时发起的 LLM 请求数量（并行数），默认 5。可根据 API 限流情况调整。",
     )
 
