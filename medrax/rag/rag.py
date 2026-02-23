@@ -1,6 +1,7 @@
+import json
 import os
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import Field
 
 from pydantic import BaseModel, Field
@@ -31,32 +32,41 @@ from .qwen3_rerank import Qwen3Reranker
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# Oral 语料向量库子目录名（与 persist_dir 拼接使用）
+VECTOR_DB_ORAL_CHINESE_NAME = "vectorDB_OralCorpus_Chinese"
+VECTOR_DB_ORAL_ENGLISH_NAME = "vectorDB_OralCorpus_English"
+
 
 class RAGConfig(BaseModel):
     """Configuration class for RAG (Retrieval Augmented Generation) system.
     Attributes:
         model (str): Cohere model name for chat completion
         temperature (float): Sampling temperature between 0 and 1
-        persist_dir (str): Directory to persist vector database
+        persist_dir (str): Base directory for vector DB; with use_OralCorpus=True, DB path is persist_dir/vectorDB_OralCorpus_*; else DB at persist_dir
+        corpus_language (str): "chinese" | "english" — which Oral corpus when use_OralCorpus=True
         embedding_model (str): Cohere model name for embeddings
         rerank_model (str): Cohere model name for reranking
         retriever_k (int): Number of documents to retrieve
         chunk_size (int): Size of text chunks for splitting
         chunk_overlap (int): Overlap between text chunks
-        local_docs_dir (str): Directory for text files
-        use_medrag_textbooks (bool): Whether to use MedRAG textbooks dataset
+        local_docs_dir (str): Directory for text files; used for Oral corpus path or custom docs when use_OralCorpus=False
+        use_OralCorpus (bool): True = load/use Oral corpus (Chinese/English); False = create from local_docs_dir only
     """
 
     model: str = Field(default="command-a-03-2025")
     temperature: float = Field(default=0.7, ge=0.0, le=1.0)
-    persist_dir: str = Field(default="vector_database")
+    persist_dir: str = Field(default="vector_database", description="Base path for vector DB; subdir added when use_OralCorpus=True")
+    corpus_language: Literal["chinese", "english"] = Field(
+        default="english",
+        description="Which Oral corpus to use: chinese -> vectorDB_OralCorpus_Chinese, english -> vectorDB_OralCorpus_English",
+    )
     embedding_model: str = Field(default="embed-english-v3.0")
     rerank_model: str = Field(default="rerank-v3.5")
     retriever_k: int = Field(default=2)
     chunk_size: int = Field(default=1000)
     chunk_overlap: int = Field(default=200)
     local_docs_dir: str = Field(default="medrax/rag/docs")
-    use_medrag_textbooks: bool = Field(default=True)
+    use_OralCorpus: bool = Field(default=True)
 
 
 class RerankingRetriever(BaseRetriever):
@@ -102,14 +112,21 @@ class CohereRAG:
         """Initialize RAG system with given configuration."""
         self.config = config
         self.chat_model = ChatCohere(model=config.model, temperature=config.temperature)
-
         # self.embeddings = CohereEmbeddings(model=config.embedding_model)
         # self.reranker = CohereRerank(model=config.rerank_model)
 
         self.embeddings = Qwen3Embeddings(model_name=config.embedding_model)
         self.reranker = Qwen3Reranker(model_name=config.rerank_model)
 
-        self.persist_dir = config.persist_dir
+        # use_OralCorpus=True：在 persist_dir 下使用 vectorDB_OralCorpus_Chinese / vectorDB_OralCorpus_English
+        # use_OralCorpus=False：直接使用 persist_dir 作为向量库路径（仅 local_docs_dir 建库）
+        if config.use_OralCorpus:
+            subdir = (
+                VECTOR_DB_ORAL_CHINESE_NAME if config.corpus_language == "chinese" else VECTOR_DB_ORAL_ENGLISH_NAME
+            )
+            self.persist_dir = os.path.join(config.persist_dir.rstrip(os.sep), subdir)
+        else:
+            self.persist_dir = config.persist_dir.rstrip(os.sep) if config.persist_dir else config.persist_dir
         self.local_docs_dir = config.local_docs_dir
         self.memory = ConversationBufferMemory(
             memory_key="chat_history",
@@ -120,24 +137,34 @@ class CohereRAG:
 
         # Initialize vectorstore if empty
         if self.vectorstore is None:
-            # Collect documents from all enabled sources
             all_documents = []
 
-            # Load MedRAG textbooks if enabled
-            if self.config.use_medrag_textbooks:
-                print("Loading documents from MedRAG textbooks...")
-                medrag_docs = self.load_medrag_textbooks()
-                all_documents.extend(medrag_docs)
-                print(f"Loaded {len(medrag_docs)} documents from MedRAG textbooks")
+            if self.config.use_OralCorpus:
+                # 使用 Oral 语料：按语种加载 vectorDB_OralCorpus_Chinese 或 vectorDB_OralCorpus_English 对应数据
+                if self.config.corpus_language == "chinese":
+                    print("Loading documents from OralCorpus (Chinese)...")
+                    oral_docs = self.load_OralCorpus_Chinese(self.local_docs_dir)
+                    all_documents.extend(oral_docs)
+                    print(f"Loaded {len(oral_docs)} documents from OralCorpus (Chinese)")
+                else:
+                    print("Loading documents from OralCorpus (English)...")
+                    oral_docs = self.load_OralCorpus_English(self.local_docs_dir)
+                    all_documents.extend(oral_docs)
+                    print(f"Loaded {len(oral_docs)} documents from OralCorpus (English)")
+                # 可选：同时加载 local_docs_dir 下的文档
+                if os.path.exists(self.local_docs_dir):
+                    print(f"Loading documents from local directory: {self.local_docs_dir}")
+                    local_docs = self.load_directory(self.local_docs_dir)
+                    all_documents.extend(local_docs)
+                    print(f"Loaded {len(local_docs)} documents from local directory")
+            else:
+                # 仅 local_docs_dir 逻辑：从本地目录建库，向量库路径为 persist_dir
+                if os.path.exists(self.local_docs_dir):
+                    print(f"Loading documents from local directory: {self.local_docs_dir}")
+                    local_docs = self.load_directory(self.local_docs_dir)
+                    all_documents.extend(local_docs)
+                    print(f"Loaded {len(local_docs)} documents from local directory")
 
-            # Load local documents if enabled
-            if os.path.exists(self.local_docs_dir):
-                print(f"Loading documents from local directory: {self.local_docs_dir}")
-                local_docs = self.load_directory(self.local_docs_dir)
-                all_documents.extend(local_docs)
-                print(f"Loaded {len(local_docs)} documents from local directory")
-
-            # Create vectorstore with all documents
             if all_documents:
                 print(f"Creating vectorstore with {len(all_documents)} total documents")
                 self.create_or_update_vectorstore(all_documents)
@@ -218,20 +245,19 @@ class CohereRAG:
         """
         if self.vectorstore is None:
             print("Creating new vectorstore...")
-            documents = documents[:500]  # Limit to first 1000 documents for initial creation # note here !!!!
+            # documents = documents[:500]  # Limit to first 1000 documents for initial creation # note here !!!!
 
             self.vectorstore = Chroma(
                 embedding_function=self.embeddings,
                 persist_directory=self.persist_dir,
             )
             # 分批添加文档
-            batch_size = 20  # 每批处理 10 个文档
+            batch_size = 1  # 每批处理 10 个文档
             batches = [documents[i:i + batch_size] for i in range(0, len(documents), batch_size)]
 
-            for i, batch in enumerate(batches):
-                print(f"Adding batch {i + 1}/{len(batches)}...")
+            for batch in tqdm(batches, desc="Adding documents to vectorstore", unit="batch"):
                 self.vectorstore.add_documents(batch)
-                time.sleep(1)  # 每批之间等待 1 秒，避免触发速率限制
+                # time.sleep(1)  # 每批之间等待 1 秒，避免触发速率限制
 
             # self.vectorstore = Chroma.from_documents(
             #     documents=documents,
@@ -368,3 +394,109 @@ class CohereRAG:
         except Exception as e:
             print(f"Error loading MedRAG textbooks: {str(e)}")
             raise ValueError(f"Failed to load MedRAG textbooks dataset: {str(e)}")
+
+    def load_OralCorpus_Chinese(self, corpus_path: str) -> List[Document]:
+        """Load OralCorpus dataset from local directory containing jsonl files (Chinese fields).
+        Each jsonl line should have: ID, 学科, 学科_ID, 书名, 页码, 内容, 原版语言.
+        Args:
+            corpus_path (str): Local path to directory containing .jsonl files
+        Returns:
+            List[Document]: List of Document objects for RAG
+        Raises:
+            ValueError: If path does not exist or is not a directory
+        """
+        corpus_dir = Path(corpus_path)
+        if not corpus_dir.exists():
+            raise ValueError(f"Corpus path does not exist: {corpus_path}")
+        if not corpus_dir.is_dir():
+            raise ValueError(f"Corpus path is not a directory: {corpus_path}")
+
+        documents = []
+        jsonl_files = list(corpus_dir.glob("**/*.jsonl"))
+
+        for file_path in tqdm(jsonl_files, desc="Loading OralCorpus jsonl files (Chinese)", unit="file"):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    for line_num, line in enumerate(f, 1):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            item = json.loads(line)
+                            content = item.get("内容", "")
+                            if not content:
+                                continue
+                            doc = Document(
+                                page_content=content,
+                                metadata={
+                                    "source": item.get("书名", "") + ", pp. " + str(item.get("页码", "")) + ".",
+                                    "id": item.get("ID"),
+                                    "学科": item.get("学科", ""),
+                                    "学科_ID": item.get("学科_ID", ""),
+                                    "书名": item.get("书名", ""),
+                                    "页码": item.get("页码"),
+                                    "原版语言": item.get("原版语言", ""),
+                                },
+                            )
+                            documents.append(doc)
+                        except json.JSONDecodeError as e:
+                            logging.warning(f"Skip invalid JSON at {file_path}:{line_num}: {e}")
+                            continue
+            except Exception as e:
+                logging.warning(f"Error loading {file_path}: {e}")
+
+        print(f"Loaded {len(documents)} document chunks from OralCorpus Chinese ({len(jsonl_files)} files)")
+        return documents
+
+    def load_OralCorpus_English(self, corpus_path: str) -> List[Document]:
+        """Load OralCorpus dataset from local directory containing jsonl files.
+        Each jsonl line should have: ID, 学科, 学科_ID, 书名, 页码, 内容, 原版语言.
+        Args:
+            corpus_path (str): Local path to directory containing .jsonl files
+        Returns:
+            List[Document]: List of Document objects for RAG
+        Raises:
+            ValueError: If path does not exist or is not a directory
+        """
+        corpus_dir = Path(corpus_path)
+        if not corpus_dir.exists():
+            raise ValueError(f"Corpus path does not exist: {corpus_path}")
+        if not corpus_dir.is_dir():
+            raise ValueError(f"Corpus path is not a directory: {corpus_path}")
+
+        documents = []
+        jsonl_files = list(corpus_dir.glob("**/*.jsonl"))
+
+        for file_path in tqdm(jsonl_files, desc="Loading OralCorpus jsonl files", unit="file"):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    for line_num, line in enumerate(f, 1):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            item = json.loads(line)
+                            content = item.get("Content", "")
+                            if not content:
+                                continue
+                            doc = Document(
+                                page_content=content,
+                                metadata={ 
+                                    "source": item.get("Title", "") + ", pp. " + str(item.get("Page_number", "")) + ".",
+                                    "id": item.get("ID"),
+                                    "Subject": item.get("Subject", ""),
+                                    "Subject_ID": item.get("Subject_ID", ""),
+                                    "Title": item.get("Title", ""),
+                                    "Page_number": item.get("Page_number"),
+                                    "Init_lang": item.get("Init_lang", ""),
+                                },
+                            )
+                            documents.append(doc)
+                        except json.JSONDecodeError as e:
+                            logging.warning(f"Skip invalid JSON at {file_path}:{line_num}: {e}")
+                            continue
+            except Exception as e:
+                logging.warning(f"Error loading {file_path}: {e}")
+
+        print(f"Loaded {len(documents)} document chunks from OralCorpus ({len(jsonl_files)} files)")
+        return documents
