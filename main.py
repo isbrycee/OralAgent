@@ -237,7 +237,7 @@ def initialize_agent(
     intent_classifier_model = BioMedCLIPClassifier(
         checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_9modalities.pth",
         coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_9modalities.json", 
-        num_classes=9
+        num_classes=8
         )
 
     # Create the agent with the specified model, tools, and configuration
