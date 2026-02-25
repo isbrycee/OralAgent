@@ -9,12 +9,9 @@ class DinoV3Classifier(nn.Module):
     def __init__(self, task_name, num_classes, hidden_size=1024, dropout=0.4):
         super().__init__()
         self.backbone = AutoModel.from_pretrained("facebook/dinov3-convnext-base-pretrain-lvd1689m")
-        if "intraoral_abnormal_9class" in task_name or "oscc_5class" in task_name:
-            self.norm = nn.BatchNorm1d(hidden_size, affine=False)
-        elif "leukoplakia_3class" in task_name or "oscc_multi_6class" in task_name:
-            self.norm = nn.BatchNorm1d(hidden_size, affine=True)
-        else:
-            self.norm = nn.LayerNorm(hidden_size, elementwise_affine=True)
+        self.head = nn.Sequential(
+            nn.BatchNorm1d(hidden_size, affine=True),
+            nn.Linear(hidden_size, num_classes))
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(hidden_size, num_classes)
     
@@ -23,7 +20,6 @@ class DinoV3Classifier(nn.Module):
         outputs = self.backbone(pixel_values)
         
         last_hidden = outputs.pooler_output
-        last_hidden = self.norm(last_hidden)
-        last_hidden = self.dropout(last_hidden)
-        logits = self.classifier(last_hidden)
+        last_hidden = self.head(last_hidden)
+        logits = last_hidden
         return logits
