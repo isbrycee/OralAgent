@@ -12,8 +12,6 @@ class DinoV3Classifier(nn.Module):
         self.head = nn.Sequential(
             nn.BatchNorm1d(hidden_size, affine=True),
             nn.Linear(hidden_size, num_classes))
-        self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden_size, num_classes)
     
     def forward(self, pixel_values):
         # Extract features from backbone
