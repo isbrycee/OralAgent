@@ -163,9 +163,10 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
-        "IntraoralImageAbnormal9ClassificationTool": lambda: IntraoralImageAbnormal9ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.json",
+
+        "IntraoralImageImageLevelConditionDetectionTool": lambda: IntraoralImageAbnormal9ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.json",
             temp_dir=temp_dir,
             device=device
         ),
@@ -189,33 +190,37 @@ def initialize_agent(
             device=device
         ),
 
+
         # for Histopathology modality
         "HistopathologyOSCCSegmentationTool": lambda: HistopathologyOSCCSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.json", 
+            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.json", 
             confidence_threshold=0.3,
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyOSCC5ClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.json",
+
+        "HistopathologyOSMFOSCCClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.json",
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyLeukoplakia3ClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.json",
+
+        "HistopathologyLeukoplakiaOSCCClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
+
+        # "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
+        #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
+        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
+        #     temp_dir=temp_dir,
+        #     device=device
+        # ),
 
         ###################### for RAG ######################
         "MedicalRAGTool": lambda: RAGTool(config=rag_config),
@@ -235,8 +240,8 @@ def initialize_agent(
     model = ChatOpenAI(model=model, temperature=temperature, **openai_kwargs)
 
     intent_classifier_model = BioMedCLIPClassifier(
-        checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_9modalities.pth",
-        coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_9modalities.json", 
+        checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_8modalities.pth",
+        coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_8modalities.json", 
         num_classes=8
         )
 
@@ -284,6 +289,7 @@ if __name__ == "__main__":
         "PanoramicXRayDiseaseSegmentationTool",
         "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
         "PanoramicXRayJawStructureSegmentationTool",
+
         "PeriapicalXRayDiseaseSegmentationTool",
 
         "CephalometricXRayLandmarkDetectionTool",
@@ -292,19 +298,15 @@ if __name__ == "__main__":
         "IntraoralImageGingivitisDetectionTool",
         "IntraoralImageFenestrationDetectionTool",
         "IntraoralImageMalocclusionIssuesDetectionTool",
-
-
-        # "IntraoralImageAbnormal9ClassificationTool",
+        "IntraoralImageImageLevelConditionDetectionTool",
+        "IntraoralImageAbnormal9ClassificationTool",
         
-        # "CytopathologyCellNucleusSegmentationTool",
-        # "HistopathologyOSCCSegmentationTool",
-        
-        # "CytopathologyCellNucleusGradingTool",
+        "CytopathologyCellNucleusSegmentationTool",
+        "CytopathologyCellNucleusGradingTool",
 
-        # "HistopathologyOSCC5ClassificationTool",
-        # "HistopathologyLeukoplakia3ClassificationTool",
-        # "HistopathologyOSCCMulti6ClassificationTool",
-        
+        "HistopathologyLeukoplakiaOSCCClassificationTool",
+        "HistopathologyOSMFOSCCClassificationTool"
+        "HistopathologyOSCCSegmentationTool",
         
         ################## for RAG ##################
         # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
@@ -353,4 +355,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8551, share=True)
+    demo.launch(server_name="0.0.0.0", server_port=8552, share=True)

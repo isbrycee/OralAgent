@@ -58,11 +58,10 @@ class HistopathologyOSCC5ClassificationOutput(BaseModel):
 class HistopathologyOSCC5ClassificationTool(BaseTool):
     """Tool for performing detailed OSCC pathology 5 classification analysis of pathology images."""
 
-    name: str = "oscc_pathology_5_classification"
+    name: str = "histopathology_osmf_oscc_5_classification"
     description: str = (
-        "Classifies pathology images into 5 categories related to OSCC. "
-        "It identifies specific pathology classes, such as mdoscc, normal, osmf, pdoscc, and wdoscc. "
-        "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
+        "Classifies histopathology images into five categories, including "
+        "Moderately-differentiated OSCC, Normal, Oral submucous fibrosis, Poorly-differentiated OSCC, and Well-differentiated OSCC. "
         "Ensure the input pathology image is of high resolution and quality for accurate classification."
     )
 
@@ -126,7 +125,7 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
     def _preprocess_image(self, image_path: str):
             """Preprocess the input image."""
             transform = transforms.Compose([
-                transforms.RandomResizedCrop((224, 224)),
+                transforms.Resize((256, 256)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
