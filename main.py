@@ -6,6 +6,22 @@ and launch a web interface for interacting with the system.
 The system uses OpenAI's language models for reasoning and can be configured
 with different model weights, tools, and parameters.
 """
+import base64
+import gradio_client.utils as _gcu
+
+_orig_get_type = _gcu.get_type
+def _patched_get_type(schema):
+    if isinstance(schema, bool):
+        return "Any"
+    return _orig_get_type(schema)
+_gcu.get_type = _patched_get_type
+
+_orig_json = _gcu._json_schema_to_python_type
+def _patched_json(schema, defs=None):
+    if isinstance(schema, bool):
+        return "Any"
+    return _orig_json(schema, defs)
+_gcu._json_schema_to_python_type = _patched_json
 
 import os
 import warnings
@@ -124,6 +140,13 @@ def initialize_agent(
             device=device
         ),
 
+        "PeriapicalXRayAbnormal7ClassificationTool": lambda: PeriapicalXRayAbnormal7ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Periapical_Abnormal_7Classification.safetensors", 
+            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Periapical_Abnormal_7Classification.json",
+            temp_dir=temp_dir,
+            device=device
+        ),
+
         # for Cephalometric X-ray modality
         "CephalometricXRayLandmarkDetectionTool": lambda: CephalometricXRayLandmarkDetectionTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth", 
@@ -156,6 +179,13 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
+        # "IntraoralImageDentalMorphologyDetectionTool": lambda: IntraoralImageDentalMorphologyDetectionTool(
+        #     config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.py",
+        #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.pth", 
+        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.json", 
+        #     temp_dir=temp_dir,
+        #     device=device
+        # ),
         "IntraoralImageMalocclusionIssuesDetectionTool": lambda: IntraoralImageMalocclusionIssuesDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.pth", 
@@ -163,9 +193,10 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
-        "IntraoralImageAbnormal9ClassificationTool": lambda: IntraoralImageAbnormal9ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Intraoral_Abnormal_9Classification.json",
+
+        "IntraoralImageImageLevelConditionDetectionTool": lambda: IntraoralImageAbnormal9ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.json",
             temp_dir=temp_dir,
             device=device
         ),
@@ -189,33 +220,37 @@ def initialize_agent(
             device=device
         ),
 
+
         # for Histopathology modality
         "HistopathologyOSCCSegmentationTool": lambda: HistopathologyOSCCSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC.json", 
+            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.json", 
             confidence_threshold=0.3,
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyOSCC5ClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_5Classification.json",
+
+        "HistopathologyOSMFOSCCClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.json",
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyLeukoplakia3ClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_Leukoplakia_3Classification.json",
+
+        "HistopathologyLeukoplakiaOSCCClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
             temp_dir=temp_dir,
             device=device
         ),
-        "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
+
+        # "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
+        #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
+        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
+        #     temp_dir=temp_dir,
+        #     device=device
+        # ),
 
         ###################### for RAG ######################
         "MedicalRAGTool": lambda: RAGTool(config=rag_config),
@@ -235,8 +270,8 @@ def initialize_agent(
     model = ChatOpenAI(model=model, temperature=temperature, **openai_kwargs)
 
     intent_classifier_model = BioMedCLIPClassifier(
-        checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_9modalities.pth",
-        coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_9modalities.json", 
+        checkpoint_path=f"{model_dir}/OralGPT_Modality_Identification_BioMedCLIP_8modalities.pth",
+        coco_names_path=f"{model_dir}/categories_Modality_Identification_BioMedCLIP_8modalities.json", 
         num_classes=8
         )
 
@@ -279,32 +314,29 @@ if __name__ == "__main__":
         # "ChestXRayGeneratorTool",
 
         ################## Add by Bryce ##################
-        "PanoramicXRayToothIdDetectionTool",
-        "PanoramicXRayBoneLossSegmentationTool",
-        "PanoramicXRayDiseaseSegmentationTool",
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        "PanoramicXRayJawStructureSegmentationTool",
-        "PeriapicalXRayDiseaseSegmentationTool",
+        # "PanoramicXRayToothIdDetectionTool",
+        # "PanoramicXRayBoneLossSegmentationTool",
+        # "PanoramicXRayDiseaseSegmentationTool",
+        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+        # "PanoramicXRayJawStructureSegmentationTool",
+        # "PeriapicalXRayDiseaseSegmentationTool",
+        "PeriapicalXRayAbnormal7ClassificationTool",
 
-        "CephalometricXRayLandmarkDetectionTool",
+        # "CephalometricXRayLandmarkDetectionTool",
         
         "IntraoralImageConditionDetectionTool",
         "IntraoralImageGingivitisDetectionTool",
         "IntraoralImageFenestrationDetectionTool",
         "IntraoralImageMalocclusionIssuesDetectionTool",
-
-
-        # "IntraoralImageAbnormal9ClassificationTool",
+        "IntraoralImageImageLevelConditionDetectionTool",
+        "IntraoralImageAbnormal9ClassificationTool",
         
-        # "CytopathologyCellNucleusSegmentationTool",
-        # "HistopathologyOSCCSegmentationTool",
-        
-        # "CytopathologyCellNucleusGradingTool",
+        "CytopathologyCellNucleusSegmentationTool",
+        "CytopathologyCellNucleusGradingTool",
 
-        # "HistopathologyOSCC5ClassificationTool",
-        # "HistopathologyLeukoplakia3ClassificationTool",
-        # "HistopathologyOSCCMulti6ClassificationTool",
-        
+        "HistopathologyLeukoplakiaOSCCClassificationTool",
+        "HistopathologyOSMFOSCCClassificationTool"
+        "HistopathologyOSCCSegmentationTool",
         
         ################## for RAG ##################
         # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
@@ -330,17 +362,17 @@ if __name__ == "__main__":
 
     # Prepare OpenAI API configuration from environment variables
     openai_kwargs: Dict[str, str] = {}
-    if api_key := os.getenv("OPENAI_API_KEY"):
-        openai_kwargs["api_key"] = api_key
+    # if api_key := os.getenv("OPENAI_API_KEY"):
+    #     openai_kwargs["api_key"] = api_key
 
-    if base_url := os.getenv("OPENAI_BASE_URL"):
-        openai_kwargs["base_url"] = base_url
+    # if base_url := os.getenv("OPENAI_BASE_URL"):
+    #     openai_kwargs["base_url"] = base_url
 
     # Initialize the agent with all configured components
     agent, tools_dict = initialize_agent(
         "medrax/docs/system_prompts.txt",
         tools_to_use=selected_tools,
-        model_dir="/data/OralGPT/OralGPT-expert-model-repository",  # Change this to the path of the model weights
+        model_dir="/home/siyuan/projects/LLMs/OralAgent/model_dir",  # Change this to the path of the model weights
         temp_dir="temp",  # Change this to the path of the temporary directory
         device="cuda",  # Change this to the device you want to use
         model="gpt-5-mini",  # Change this to the model you want to use, e.g. gpt-4o-mini
@@ -353,4 +385,4 @@ if __name__ == "__main__":
     # Create and launch the web interface
     demo = create_demo(agent, tools_dict)
 
-    demo.launch(server_name="0.0.0.0", server_port=8551, share=True)
+    demo.launch(server_name="0.0.0.0", server_port=8552, share=True)

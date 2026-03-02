@@ -2,15 +2,9 @@ from typing import Dict, List, Optional, Tuple, Type, Any
 from pathlib import Path
 import uuid
 
-import cv2
 import numpy as np
 import torch
-import torchvision
-import torchxrayvision as xrv
 import matplotlib.pyplot as plt
-import skimage.io
-import skimage.measure
-import skimage.transform
 import traceback
 
 from pydantic import BaseModel, Field
@@ -43,29 +37,30 @@ class NpEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class HistopathologyOSCC5Classification(BaseModel):
-    """Input schema for the OSCC Pathology 5 Classification Tool."""
+class PeriapicalXRayAbnormal7Classification(BaseModel):
+    """Input schema for the Abnormal Periapical X-Ray 7 Classification Tool."""
 
-    image_path: str = Field(..., description="Path to the Pathology image file to be processed")
+    image_path: str = Field(..., description="Path to the Periapical X-Ray image file to be processed")
 
-class HistopathologyOSCC5ClassificationOutput(BaseModel):
-    """Output schema for the OSCC Pathology 5 Classification Tool."""
+class PeriapicalXRayAbnormal7ClassificationOutput(BaseModel):
+    """Output schema for the Abnormal Periapical X-Ray 7 Classification Tool."""
 
-    predicted_class: str = Field(..., description="Predicted OSCC class")
+    predicted_class: str = Field(..., description="Predicted Abnormal Periapical X-Ray class")
     confidence: float = Field(..., description="Prediction confidence (0-1)")
 
 
-class HistopathologyOSCC5ClassificationTool(BaseTool):
-    """Tool for performing detailed OSCC pathology 5 classification analysis of pathology images."""
+class PeriapicalXRayAbnormal7ClassificationTool(BaseTool):
+    """Tool for performing detailed Abnormal Periapical X-Ray 7 classification analysis of periapical images."""
 
-    name: str = "histopathology_osmf_oscc_5_classification"
+    name: str = "periapical_xray_abnormal_7_classification"
     description: str = (
-        "Classifies histopathology images into five categories, including "
-        "Moderately-differentiated OSCC, Normal, Oral submucous fibrosis, Poorly-differentiated OSCC, and Well-differentiated OSCC. "
-        "Ensure the input pathology image is of high resolution and quality for accurate classification."
+        "Classifies periapical x-ray images into 7 categories related to abnormalities. "
+        "It identifies specific abnormal periapical x-ray classes. "
+        "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
+        "Ensure the input periapical x-ray image is of high resolution and quality for accurate classification."
     )
 
-    args_schema: Type[BaseModel] = HistopathologyOSCC5Classification
+    args_schema: Type[BaseModel] = PeriapicalXRayAbnormal7Classification
 
     checkpoint_path: str = ""
     prototype_path: str = ""
@@ -81,7 +76,7 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
     id2name: Any = None
 
     def __init__(self, checkpoint_path: str, coco_names_path: str, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
-        """Initialize the OSCC Pathology 5 Classification Tool."""
+        """Initialize the Abnormal Periapical X-Ray 7 Classification Tool."""
         super().__init__()
         self.checkpoint_path = checkpoint_path
         self.coco_names_path = coco_names_path
@@ -94,9 +89,9 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
         self.temp_dir.mkdir(exist_ok=True)
 
     def _load_model(self, checkpoint_path: str, num_classes: int):
-        """Load the complete OSCC classifier model."""
+        """Load the complete Abnormal Periapical X-Ray 7 Classification model."""
         # Create model instance
-        model = DinoV3Classifier(task_name="oscc_5class", num_classes=num_classes)
+        model = DinoV3Classifier(task_name="periapical_xray_abnormal_7class", num_classes=num_classes)
         
         state_dict = load_file(checkpoint_path)
         try:
@@ -125,7 +120,7 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
     def _preprocess_image(self, image_path: str):
             """Preprocess the input image."""
             transform = transforms.Compose([
-                transforms.Resize((256, 256)),
+                transforms.Resize((336, 336)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
@@ -146,9 +141,9 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
     def _run(self, 
             image_path: str,
             # run_manager: Optional[CallbackManagerForToolRun] = None,
-            ) -> HistopathologyOSCC5ClassificationOutput:
+            ) -> PeriapicalXRayAbnormal7ClassificationOutput:
         try:
-            """Run the OSCC Pathology 5 Classification Tool."""
+            """Run the Abnormal Periapical X-Ray 7 Classification Tool."""
 
             # Preprocess the image
             image_tensor, orig_size = self._preprocess_image(image_path)
@@ -156,7 +151,7 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
             pred_class, pred_conf = self._run_inference(image_tensor, orig_size)
 
             # Create output object
-            output = HistopathologyOSCC5ClassificationOutput(predicted_class=self.id2name[pred_class[0]], confidence=float(pred_conf[0]))
+            output = PeriapicalXRayAbnormal7ClassificationOutput(predicted_class=self.id2name[pred_class[0]], confidence=float(pred_conf[0]))
             # Save visualization
             viz_path = self._save_visualization(
                     image_path=image_path,
@@ -201,7 +196,7 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
 
     def _save_visualization(self, image_path: str, pred_class: str) -> str:
         """
-        Save a visualization of the predictions for pathology classification.
+        Save a visualization of the predictions for periapical abnormality classification.
         """
         # Load the original image
         orig_image = Image.open(image_path).convert("RGB")
@@ -210,10 +205,10 @@ class HistopathologyOSCC5ClassificationTool(BaseTool):
         fig, ax = plt.subplots(1, figsize=(12, 10))
         ax.imshow(orig_image)
         ax.axis('off')
-        ax.set_title(f"Pathology {os.path.basename(image_path)} classification results: {pred_class}", fontsize=16)
+        ax.set_title(f"Periapical Abnormality {os.path.basename(image_path)} classification results: {pred_class}", fontsize=16)
         plt.axis('off')
         # Save the visualization
-        save_path = self.temp_dir / f"pathology_oscc_5classification_{uuid.uuid4().hex[:8]}.png"
+        save_path = self.temp_dir / f"periapical_abnormal_7classification_{uuid.uuid4().hex[:8]}.png"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.tight_layout()
         plt.savefig(save_path, dpi=200, bbox_inches='tight', pad_inches=0) 

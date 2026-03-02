@@ -50,16 +50,14 @@ class IntraoralImageAbnormal9ClassificationOutput(BaseModel):
 
 
 class IntraoralImageAbnormal9ClassificationTool(BaseTool):
-    """Tool for performing detailed Abnormal Intraoral 9 classification analysis of intraoral images."""
+    """Tool for performing image-level 9 condition analysis of intraoral images."""
 
-    name: str = "intraoral_abnormal_9_classification"
+    name: str = "intraoral_image_image-level_abnormality_classification"
     description: str = (
-        "Classifies intraoral images into 9 categories related to abnormalities. "
-        "It identifies specific abnormal intraoral classes. "
-        "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
+        "Classifies intraoral images into 9 categories related to image-level abnormalities, including gingivitis, orthodontic braces, dental calculus, oral cancer, dental caries, defect of dentition, tooth discoloration, oral ulcer, and normal."
         "Ensure the input intraoral image is of high resolution and quality for accurate classification."
     )
-
+    
     args_schema: Type[BaseModel] = IntraoralImageAbnormal9Classification
 
     checkpoint_path: str = ""
@@ -96,7 +94,7 @@ class IntraoralImageAbnormal9ClassificationTool(BaseTool):
         state_dict = load_file(checkpoint_path)
         try:
             model.load_state_dict(state_dict, strict=True)
-            print("Weights loaded successfully (strict mode).")
+            print(f"Weights {checkpoint_path.split('/')[-1]} loaded successfully (strict mode).")
         except RuntimeError as e:
             raise RuntimeError(f"Error loading model weights: {e}. Check if the checkpoint is compatible with the model architecture.")
         
@@ -120,7 +118,7 @@ class IntraoralImageAbnormal9ClassificationTool(BaseTool):
     def _preprocess_image(self, image_path: str):
             """Preprocess the input image."""
             transform = transforms.Compose([
-                transforms.RandomResizedCrop((224, 224)),
+                transforms.Resize((256, 256)),  # resize then center crop for deterministic input
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])

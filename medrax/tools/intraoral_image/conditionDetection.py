@@ -61,9 +61,9 @@ class IntraoralImageConditionDetectionOutput(BaseModel):
 class IntraoralImageConditionDetectionTool(BaseTool):
     """Tool for performing condition detection analysis on intraoral images."""
 
-    name: str = "intraoral_image_condition_detection"
+    name: str = "intraoral_image_region-level_abnormality_detection"
     description: str = (
-        "Detects dental conditions in intraoral images. "
+        "Detects region-level abnormalities in intraoral images. "
         "It identifies four condition types: Abrasion, Filling, Crown, and Caries. "
         "Returns detection visualization and a list of detected conditions with their bounding boxes and confidence scores. "
         "Ensure the input intraoral image is of high quality for optimal performance."

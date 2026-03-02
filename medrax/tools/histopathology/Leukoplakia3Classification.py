@@ -52,11 +52,10 @@ class HistopathologyLeukoplakia3ClassificationOutput(BaseModel):
 class HistopathologyLeukoplakia3ClassificationTool(BaseTool):
     """Tool for performing detailed Leukoplakia pathology 3 classification analysis of pathology images."""
 
-    name: str = "leukoplakia_pathology_3_classification"
+    name: str = "histopathology_leukoplakia_oscc_3_classification"
     description: str = (
-        "Classifies pathology images into 3 categories related to Leukoplakia. "
-        "It identifies specific pathology classes, such as mdoscc, normal, osmf, pdoscc, and wdoscc. "
-        "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
+        "Classifies histopathology images into three categories, including "
+        "Leukoplakia with dysplasia, Leukoplakia without dysplasia, and OSCC. "
         "Ensure the input pathology image is of high resolution and quality for accurate classification."
     )
 
@@ -120,7 +119,8 @@ class HistopathologyLeukoplakia3ClassificationTool(BaseTool):
     def _preprocess_image(self, image_path: str):
             """Preprocess the input image."""
             transform = transforms.Compose([
-                transforms.RandomResizedCrop((224, 224)),
+                # transforms.RandomResizedCrop((224, 224)),
+                transforms.Resize((256, 256)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
@@ -208,7 +208,7 @@ class HistopathologyLeukoplakia3ClassificationTool(BaseTool):
         ax.set_title(f"Pathology {os.path.basename(image_path)} classification results: {pred_class}", fontsize=16)
         plt.axis('off')
         # Save the visualization
-        save_path = self.temp_dir / f"pathology_leukoplakia_3classification_{uuid.uuid4().hex[:8]}.png"
+        save_path = self.temp_dir / f"Histopathology_leukoplakia_oscc_3_classification_{uuid.uuid4().hex[:8]}.png"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.tight_layout()
         plt.savefig(save_path, dpi=200, bbox_inches='tight', pad_inches=0) 
