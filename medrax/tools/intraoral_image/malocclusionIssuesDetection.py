@@ -178,10 +178,11 @@ class IntraoralImageMalocclusionIssuesDetectionTool(BaseTool):
             output = IntraoralImageMalocclusionIssuesDetectionOutput(detections=detections)
 
             # Save visualization
-            viz_path = self._save_visualization(
-                    image_path=image_path,
-                    output=output
-                    )
+            viz_path = None
+            # viz_path = self._save_visualization(
+            #         image_path=image_path,
+            #         output=output
+            #         )
 
             # convert boxes for detected malocclusion issues
             results = {}

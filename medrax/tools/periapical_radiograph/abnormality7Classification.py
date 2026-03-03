@@ -52,10 +52,10 @@ class PeriapicalXRayAbnormal7ClassificationOutput(BaseModel):
 class PeriapicalXRayAbnormal7ClassificationTool(BaseTool):
     """Tool for performing detailed Abnormal Periapical X-Ray 7 classification analysis of periapical images."""
 
-    name: str = "periapical_xray_abnormal_7_classification"
+    name: str = "periapical_xray_abnormality_classification"
     description: str = (
-        "Classifies periapical x-ray images into 7 categories related to abnormalities. "
-        "It identifies specific abnormal periapical x-ray classes. "
+        "Classifies periapical x-ray into 7 abnormal categories,including: "
+        "Irreversible Pulpitis, Impacted Tooth, Improper Restoration, Apical Periodontitis, Embedded Tooth, Proximal Caries, Periodontitis. "
         "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
         "Ensure the input periapical x-ray image is of high resolution and quality for accurate classification."
     )
@@ -152,11 +152,13 @@ class PeriapicalXRayAbnormal7ClassificationTool(BaseTool):
 
             # Create output object
             output = PeriapicalXRayAbnormal7ClassificationOutput(predicted_class=self.id2name[pred_class[0]], confidence=float(pred_conf[0]))
+            
             # Save visualization
-            viz_path = self._save_visualization(
-                    image_path=image_path,
-                    pred_class=self.id2name[pred_class[0]],
-                    )
+            viz_path = None
+            # viz_path = self._save_visualization(
+            #         image_path=image_path,
+            #         pred_class=self.id2name[pred_class[0]],
+            #         )
 
             # Prepare output and metadata
             output = {

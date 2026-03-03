@@ -41,7 +41,7 @@ def build_model_main(args):
     model, criterion, postprocessors = build_func(args)
     return model, criterion, postprocessors
 
-class IntraoralImageDentalMorphologyDetectionInput(BaseModel):
+class IntraoralImageToothTypeDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Dental Morphology Detection Tool."""
 
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for dental morphology detection")
@@ -52,22 +52,23 @@ class IntraoralImageDentalMorphologyDetectionInput(BaseModel):
         "The available morphology types include: tooth, 1st Molar, 1st Premolar, 2nd Molar, 2nd Premolar, Canine, Central Incisor, Lateral Incisor "
     )
 
-class IntraoralImageDentalMorphologyDetectionOutput(BaseModel):
+class IntraoralImageToothTypeDetectionOutput(BaseModel):
     """Output schema for Intraoral Image Dental Morphology Detection Tool."""
     detections: List[Dict[str, Any]] = Field(..., description="List of detected dental morphology regions and bounding boxes")
 
 
-class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
+class IntraoralImageToothTypeDetectionTool(BaseTool):
     """Tool for performing dental morphology detection analysis on intraoral images."""
 
-    name: str = "intraoral_image_dental_morphology_detection"
+    name: str = "intraoral_image_tooth_type_detection"
     description: str = (
-        "Detects dental morphologies in intraoral images. "
-        "Returns detection visualization and a list of detected dental morphology regions with their bounding boxes and confidence scores. "
+        "Detects tooth types in intraoral images. "
+        "It identifies eight tooth types: tooth, 1st Molar, 1st Premolar, 2nd Molar, 2nd Premolar, Canine, Central Incisor, Lateral Incisor"
+        "Returns detection visualization and a list of detected tooth type regions with their bounding boxes and confidence scores. "
         "Ensure the input intraoral image is of high quality for optimal performance."
     )
 
-    args_schema: Type[BaseModel] = IntraoralImageDentalMorphologyDetectionInput
+    args_schema: Type[BaseModel] = IntraoralImageToothTypeDetectionInput
 
     config_path: str = ""
     checkpoint_path: str = ""
@@ -134,7 +135,7 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
             confidence: Optional[float] = 0.3,
             dental_morphology_types: Optional[List[str]] = None,
             run_manager: Optional[CallbackManagerForToolRun] = None,
-            ) -> IntraoralImageDentalMorphologyDetectionOutput:
+            ) -> IntraoralImageToothTypeDetectionOutput:
         try:
             """Run the Intraoral Image Dental Morphology Detection Tool."""
             # Preprocess the image
@@ -172,9 +173,10 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
                 detections = [det for det in detections if det['dental_morphology'] in dental_morphology_types]
 
             # Create output object
-            output = IntraoralImageDentalMorphologyDetectionOutput(detections=detections)
+            output = IntraoralImageToothTypeDetectionOutput(detections=detections)
 
             # Save visualization
+            viz_path = None
             viz_path = self._save_visualization(
                     image_path=image_path,
                     output=output
@@ -235,13 +237,13 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
         y2 = round(float(cy + h / 2))
         return [x1, y1, x2, y2]
 
-    def _save_visualization(self, image_path: str, output: IntraoralImageDentalMorphologyDetectionOutput) -> str:
+    def _save_visualization(self, image_path: str, output: IntraoralImageToothTypeDetectionOutput) -> str:
         """
         Visualize the dental morphology detection results and save the visualization as an image.
 
         Args:
             image_path (str): Path to the input intraoral image.
-            output (IntraoralImageDentalMorphologyDetectionOutput): Detection output containing dental morphology type, bounding boxes, and scores.
+            output (IntraoralImageToothTypeDetectionOutput): Detection output containing dental morphology type, bounding boxes, and scores.
         """
         # Load the original image
         orig_image = Image.open(image_path).convert("RGB")
@@ -281,7 +283,7 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
             )
 
         # Save the visualization
-        save_path = self.temp_dir / f"detection_{uuid.uuid4().hex[:8]}.png"
+        save_path = self.temp_dir / f"detection_ToothType_{uuid.uuid4().hex[:8]}.png"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.tight_layout()
         plt.savefig(save_path, dpi=200, bbox_inches='tight')
