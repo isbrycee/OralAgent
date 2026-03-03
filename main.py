@@ -247,7 +247,7 @@ def initialize_agent(
 
         # "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
         #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
-        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
+        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSCC_Multi6Classification.json",
         #     temp_dir=temp_dir,
         #     device=device
         # ),

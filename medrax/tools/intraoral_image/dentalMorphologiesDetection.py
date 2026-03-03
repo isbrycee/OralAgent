@@ -19,11 +19,6 @@ from langchain_core.callbacks import (
 )
 from langchain_core.tools import BaseTool
 
-from medrax.tools.intraoral_image.gingivitisDetection import IntraoralImageGingivitisDetectionInput, IntraoralImageGingivitisDetectionOutput
-
-from medrax.tools.intraoral_image.gingivitisDetection import IntraoralImageGingivitisDetectionInput
-
-
 ############################### for DINO Detection Model ##################################
 from ..util.transforms import *
 from ..util import box_ops
@@ -53,7 +48,8 @@ class IntraoralImageDentalMorphologyDetectionInput(BaseModel):
     confidence: Optional[float] = Field(0.3, description="Confidence threshold for detection")
     dental_morphology_types: Optional[List[str]] = Field(
         None,
-        description="Currently, only severe gingivitis detection is supported. Please set this parameter to None or 'gingivitis'."
+        description="A list of dental morphology type names to detect. If set to None, all available types will be detected. "
+        "The available morphology types include: tooth, 1st Molar, 1st Premolar, 2nd Molar, 2nd Premolar, Canine, Central Incisor, Lateral Incisor "
     )
 
 class IntraoralImageDentalMorphologyDetectionOutput(BaseModel):
@@ -165,15 +161,15 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
                 if score < confidence:
                     continue
 
-                gingivitis_type = self.id2name.get(label, f"Unknown ({label})")
+                dental_morphology_types = self.id2name.get(label, f"Unknown ({label})")
                 detections.append({
-                    "gingivitis_type": gingivitis_type,
+                    "dental_morphology": dental_morphology_types,
                     "bbox": self._convert_bbox_to_xyxy(box_orig),
                     "score": round(score, 2)
                 })
 
             if dental_morphology_types:
-                detections = [det for det in detections if det['gingivitis_type'] in dental_morphology_types]
+                detections = [det for det in detections if det['dental_morphology'] in dental_morphology_types]
 
             # Create output object
             output = IntraoralImageDentalMorphologyDetectionOutput(detections=detections)
@@ -189,7 +185,7 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
             for detection in detections:
                 bbox = detection['bbox']
                 score = detection['score']
-                dental_morphology_type = detection['dental_morphology_type']
+                dental_morphology_type = detection['dental_morphology']
                 results[dental_morphology_type] = {'box': bbox, 'score': score}
 
             # Prepare output and metadata
@@ -263,7 +259,7 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
         # Draw each detection
         for i, detection in enumerate(output.detections):
             bbox = detection['bbox']  # [xmin, ymin, xmax, ymax]
-            dental_morphology_type = detection['dental_morphology_type']
+            dental_morphology_type = detection['dental_morphology']
             score = detection['score']
 
             # Extract bounding box coordinates
