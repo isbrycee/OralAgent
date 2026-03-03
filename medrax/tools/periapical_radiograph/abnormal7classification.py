@@ -37,29 +37,30 @@ class NpEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class HistopathologyOSCCMulti6Classification(BaseModel):
-    """Input schema for the OSCC Pathology multi label 6 Classification Tool."""
+class PeriapicalXRayAbnormal7Classification(BaseModel):
+    """Input schema for the Abnormal Periapical X-Ray 7 Classification Tool."""
 
-    image_path: str = Field(..., description="Path to the OSCC Pathology image file to be processed")
+    image_path: str = Field(..., description="Path to the Periapical X-Ray image file to be processed")
 
-class HistopathologyOSCCMulti6ClassificationOutput(BaseModel):
-    """Output schema for the OSCC Pathology multi label 6 Classification Tool."""
+class PeriapicalXRayAbnormal7ClassificationOutput(BaseModel):
+    """Output schema for the Abnormal Periapical X-Ray 7 Classification Tool."""
 
-    predicted_class: List[str] = Field(..., description="Predicted OSCC classes")
-    confidence: List[float] = Field(..., description="Prediction confidences (0-1)")
+    predicted_class: str = Field(..., description="Predicted Abnormal Periapical X-Ray class")
+    confidence: float = Field(..., description="Prediction confidence (0-1)")
 
 
-class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
-    """Tool for performing detailed OSCC pathology multi label 6 classification analysis of pathology images."""
-    name: str = "oscc_pathology_multi_6_classification"
+class PeriapicalXRayAbnormal7ClassificationTool(BaseTool):
+    """Tool for performing detailed Abnormal Periapical X-Ray 7 classification analysis of periapical images."""
+
+    name: str = "periapical_xray_abnormal_7_classification"
     description: str = (
-        "Classifies pathology images into 6 categories related to OSCC. "
-        "It identifies specific pathology classes, such as mdoscc, normal, osmf, pdoscc, and wdoscc. "
+        "Classifies periapical x-ray images into 7 categories related to abnormalities. "
+        "It identifies specific abnormal periapical x-ray classes. "
         "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
-        "Ensure the input pathology image is of high resolution and quality for accurate classification."
+        "Ensure the input periapical x-ray image is of high resolution and quality for accurate classification."
     )
 
-    args_schema: Type[BaseModel] = HistopathologyOSCCMulti6Classification
+    args_schema: Type[BaseModel] = PeriapicalXRayAbnormal7Classification
 
     checkpoint_path: str = ""
     prototype_path: str = ""
@@ -75,7 +76,7 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
     id2name: Any = None
 
     def __init__(self, checkpoint_path: str, coco_names_path: str, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
-        """Initialize the OSCC Pathology multi label 6 Classification Tool."""
+        """Initialize the Abnormal Periapical X-Ray 7 Classification Tool."""
         super().__init__()
         self.checkpoint_path = checkpoint_path
         self.coco_names_path = coco_names_path
@@ -88,9 +89,9 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
         self.temp_dir.mkdir(exist_ok=True)
 
     def _load_model(self, checkpoint_path: str, num_classes: int):
-        """Load the complete OSCC multi label 6 classifier model."""
+        """Load the complete Abnormal Periapical X-Ray 7 Classification model."""
         # Create model instance
-        model = DinoV3Classifier(task_name="oscc_multi_6class", num_classes=num_classes)
+        model = DinoV3Classifier(task_name="periapical_xray_abnormal_7class", num_classes=num_classes)
         
         state_dict = load_file(checkpoint_path)
         try:
@@ -132,20 +133,17 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
         with torch.no_grad():
             features = self.model(image_tensor.to(self.device))
 
-        probs = torch.sigmoid(features) 
-        probs = probs[0]
-        
-        pred_indices = (probs > 0.5).nonzero(as_tuple=False).squeeze(-1).cpu().numpy()
-        prob_conf = [float(probs[i]) for i in pred_indices]
+        probs = torch.softmax(features, dim=1)
+        pred_conf, pred_class = torch.max(probs, dim=1)
 
-        return pred_indices, prob_conf
+        return pred_class.cpu().numpy(), pred_conf.cpu().numpy()
 
     def _run(self, 
             image_path: str,
             # run_manager: Optional[CallbackManagerForToolRun] = None,
-            ) -> HistopathologyOSCCMulti6ClassificationOutput:
+            ) -> PeriapicalXRayAbnormal7ClassificationOutput:
         try:
-            """Run the OSCC Pathology multi label 6 Classification Tool."""
+            """Run the Abnormal Periapical X-Ray 7 Classification Tool."""
 
             # Preprocess the image
             image_tensor, orig_size = self._preprocess_image(image_path)
@@ -153,19 +151,18 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
             pred_class, pred_conf = self._run_inference(image_tensor, orig_size)
 
             # Create output object
-            output = HistopathologyOSCCMulti6ClassificationOutput(predicted_class=[self.id2name[i] for i in pred_class], confidence=[float(c) for c in pred_conf])
+            output = PeriapicalXRayAbnormal7ClassificationOutput(predicted_class=self.id2name[pred_class[0]], confidence=float(pred_conf[0]))
             # Save visualization
-            viz_path = None
-            # viz_path = self._save_visualization(
-            #         image_path=image_path,
-            #         pred_class=[self.id2name[i] for i in pred_class],
-            #         )
+            viz_path = self._save_visualization(
+                    image_path=image_path,
+                    pred_class=self.id2name[pred_class[0]],
+                    )
 
             # Prepare output and metadata
             output = {
                 "detection_image_path": viz_path,
-                "pred_class": [self.id2name[i] for i in pred_class],
-                "confidence": [float(c) for c in pred_conf]
+                "pred_class": self.id2name[pred_class[0]],
+                "confidence": float(pred_conf[0])
             }
 
             metadata = {
@@ -199,7 +196,7 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
 
     def _save_visualization(self, image_path: str, pred_class: str) -> str:
         """
-        Save a visualization of the predictions for pathology classification.
+        Save a visualization of the predictions for periapical abnormality classification.
         """
         # Load the original image
         orig_image = Image.open(image_path).convert("RGB")
@@ -208,10 +205,10 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
         fig, ax = plt.subplots(1, figsize=(12, 10))
         ax.imshow(orig_image)
         ax.axis('off')
-        ax.set_title(f"Pathology {os.path.basename(image_path)} classification results: {pred_class}", fontsize=16)
+        ax.set_title(f"Periapical Abnormality {os.path.basename(image_path)} classification results: {pred_class}", fontsize=16)
         plt.axis('off')
         # Save the visualization
-        save_path = self.temp_dir / f"pathology_oscc_multi_6classification_{uuid.uuid4().hex[:8]}.png"
+        save_path = self.temp_dir / f"periapical_abnormal_7classification_{uuid.uuid4().hex[:8]}.png"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.tight_layout()
         plt.savefig(save_path, dpi=200, bbox_inches='tight', pad_inches=0) 
