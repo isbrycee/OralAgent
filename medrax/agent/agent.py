@@ -256,12 +256,32 @@ class Agent:
         print("user_input:", user_input)
 
         user_text_query = self.extract_text_content(user_input)
-        self.extract_image_content(state["messages"])  # may be used elsewhere
+        
+        newest_image_content = self.extract_image_content(state["messages"])  # 最新的图像 message
 
+        # 图像绝对路径：从最新图像 message 的 content 解析（优先 image_url.image_path）
         image_path = None
-        for msg in state["messages"]:
-            if isinstance(msg, dict) and "content" in msg:
-                content = msg["content"]
+        if newest_image_content and isinstance(newest_image_content.get("content"), list):
+            for item in newest_image_content["content"]:
+                if isinstance(item, dict) and item.get("type") == "image_url":
+                    url_obj = item.get("image_url")
+                    if isinstance(url_obj, dict):
+                        if "image_path" in url_obj:
+                            path = url_obj.get("image_path")
+                        elif "url" in url_obj:
+                            path = url_obj.get("url")
+                        if path and isinstance(path, str):
+                            image_path = path.strip()
+                            break
+        if image_path is None and newest_image_content and isinstance(newest_image_content.get("content"), str):
+            content = newest_image_content["content"]
+            if "image_path:" in content:
+                image_path = content.split("image_path:")[1].strip()
+
+        # 网页上传时 image_url 为 base64，无法作为文件路径；从同轮对话中查找显式的 image_path: 路径
+        if image_path and (image_path.startswith("data:") or (not Path(image_path).is_file())):
+            for msg in reversed(state["messages"]):
+                content = msg.get("content") if isinstance(msg, dict) else getattr(msg, "content", None)
                 if isinstance(content, str) and "image_path:" in content:
                     image_path = content.split("image_path:")[1].strip()
                     break
@@ -277,6 +297,8 @@ class Agent:
                 # print(f"modality_section: {modality_section}")
             except Exception as e:
                 print(f"Modality classification error: {e}")
+        if image_path:
+            modality_section += f"\nImage file path (you MUST use this exact path for the image_path argument in tool calls): {image_path}"
 
         user_intent = self.recognize_intent(user_text_query)
         # print("user_intent: ", user_intent)
@@ -346,6 +368,18 @@ class Agent:
                 content = message["content"]
                 if isinstance(content, str) and "image_path:" in content:
                     return message  # Return the message containing 'image_path'
+                # User's first message: content is list with type "image_url" (e.g. HumanMessage with image)
+                if isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict) and item.get("type") == "image_url":
+                            return message
+            # LangChain message may be object with .content (e.g. HumanMessage)
+            if hasattr(message, "content"):
+                content = getattr(message, "content", None)
+                if isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict) and item.get("type") == "image_url":
+                            return message if isinstance(message, dict) else {"content": content}
 
         return None
 
