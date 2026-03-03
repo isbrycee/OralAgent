@@ -162,7 +162,7 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
                 detections = [det for det in detections if det['dental_morphology'] in dental_morphology_types]
 
             # Create output object
-            output = IntraoralImageToothTypeDetectionOutput(detections=detections)
+            viz_output = IntraoralImageToothTypeDetectionOutput(detections=detections)
 
             # Save visualization
             viz_path = None
