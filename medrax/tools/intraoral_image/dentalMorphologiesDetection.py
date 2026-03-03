@@ -5,11 +5,7 @@ import uuid
 import numpy as np
 import torch
 import torchvision
-import torchxrayvision as xrv
 import matplotlib.pyplot as plt
-import skimage.io
-import skimage.measure
-import skimage.transform
 import traceback
 
 from pydantic import BaseModel, Field
@@ -23,27 +19,22 @@ from langchain_core.tools import BaseTool
 from ..util.transforms import *
 from ..util import box_ops
 from ..util.slconfig import SLConfig
-import inspect
-from functools import partial
 from PIL import Image
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import os
-import uuid
 import json
 
 
 def build_model_main(args):
-    # we use register to maintain models from catdet6 on.
     from ..model_DINO.registry import MODULE_BUILD_FUNCS
     assert args.modelname in MODULE_BUILD_FUNCS._module_dict
     build_func = MODULE_BUILD_FUNCS.get(args.modelname)
     model, criterion, postprocessors = build_func(args)
     return model, criterion, postprocessors
 
+
 class IntraoralImageDentalMorphologyDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Dental Morphology Detection Tool."""
-
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for dental morphology detection")
     confidence: Optional[float] = Field(0.3, description="Confidence threshold for detection")
     dental_morphology_types: Optional[List[str]] = Field(
@@ -51,6 +42,7 @@ class IntraoralImageDentalMorphologyDetectionInput(BaseModel):
         description="A list of dental morphology type names to detect. If set to None, all available types will be detected. "
         "The available morphology types include: tooth, 1st Molar, 1st Premolar, 2nd Molar, 2nd Premolar, Canine, Central Incisor, Lateral Incisor "
     )
+
 
 class IntraoralImageDentalMorphologyDetectionOutput(BaseModel):
     """Output schema for Intraoral Image Dental Morphology Detection Tool."""
@@ -110,23 +102,30 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
         return {int(cat_id): cat_name for cat_id, cat_name in categories.items()}
 
     def _preprocess_image(self, image_path: str):
-            """Preprocess the input image."""
-            transform = Compose([
-                RandomResize([800], max_size=1333),
-                ToTensor(),
-                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
-            image = Image.open(image_path).convert("RGB")
-            orig_size = image.size
-            image_transformed, _ = transform(image, None)
-            return image_transformed, orig_size
+        """Preprocess the input image."""
+        transform = Compose([
+            RandomResize([800], max_size=1333),
+            ToTensor(),
+            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        image = Image.open(image_path).convert("RGB")
+        orig_size = image.size  # (w, h)
+        image_transformed, _ = transform(image, None)
+        return image_transformed, orig_size
 
-    def _run_inference(self, image_tensor):
-        """Run inference on the input image tensor."""
+    def _run_inference(self, image_tensor, orig_size):
+        """Run inference on the input image tensor.
+        
+        Args:
+            image_tensor: preprocessed image tensor
+            orig_size: (orig_w, orig_h) tuple from PIL
+        """
         with torch.no_grad():
             image_tensor = image_tensor.unsqueeze(0).to(self.device)
             outputs = self.model(image_tensor)
-            processed_outputs = self.postprocessors['bbox'](outputs, torch.tensor([[1.0, 1.0]]).to(self.device))[0]
+            orig_w, orig_h = orig_size
+            target_sizes = torch.tensor([[orig_h, orig_w]]).to(self.device)
+            processed_outputs = self.postprocessors['bbox'](outputs, target_sizes)[0]
         return processed_outputs
 
     def _run(self, 
@@ -134,59 +133,43 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
             confidence: Optional[float] = 0.3,
             dental_morphology_types: Optional[List[str]] = None,
             run_manager: Optional[CallbackManagerForToolRun] = None,
-            ) -> IntraoralImageDentalMorphologyDetectionOutput:
+            ) -> Tuple[Dict[str, Any], Dict]:
         try:
-            """Run the Intraoral Image Dental Morphology Detection Tool."""
             # Preprocess the image
             image_tensor, orig_size = self._preprocess_image(image_path)
-            orig_w, orig_h = orig_size
-
-            # Run inference
-            outputs = self._run_inference(image_tensor)
+            outputs = self._run_inference(image_tensor, orig_size)
 
             # Process detections
             detections = []
             for i in range(len(outputs['boxes'])):
-                box_cxcywh = box_ops.box_xyxy_to_cxcywh(outputs['boxes'][i]).cpu().numpy()
-                cx, cy, w, h = box_cxcywh
-                box_orig = [
-                    cx * orig_w,
-                    cy * orig_h,
-                    w * orig_w,
-                    h * orig_h
-                ]
-                label = outputs['labels'][i].item()
                 score = outputs['scores'][i].item()
 
                 if score < confidence:
                     continue
 
-                dental_morphology_types = self.id2name.get(label, f"Unknown ({label})")
+                box_xyxy = outputs['boxes'][i].cpu().numpy().tolist()
+                x1, y1, x2, y2 = [round(c) for c in box_xyxy]
+
+                label = outputs['labels'][i].item()
+                morphology_name = self.id2name.get(label, f"Unknown ({label})")
+
                 detections.append({
-                    "dental_morphology": dental_morphology_types,
-                    "bbox": self._convert_bbox_to_xyxy(box_orig),
+                    "dental_morphology": morphology_name,
+                    "bbox": [x1, y1, x2, y2],
                     "score": round(score, 2)
                 })
 
             if dental_morphology_types:
                 detections = [det for det in detections if det['dental_morphology'] in dental_morphology_types]
 
-            # Create output object
-            output = IntraoralImageDentalMorphologyDetectionOutput(detections=detections)
+            # Create output object for visualization
+            viz_output = IntraoralImageDentalMorphologyDetectionOutput(detections=detections)
 
             # Save visualization
             viz_path = self._save_visualization(
-                    image_path=image_path,
-                    output=output
-                    )
-
-            # convert boxes for detected dental morphologies regions
-            results = {}
-            for detection in detections:
-                bbox = detection['bbox']
-                score = detection['score']
-                dental_morphology_type = detection['dental_morphology']
-                results[dental_morphology_type] = {'box': bbox, 'score': score}
+                image_path=image_path,
+                output=viz_output
+            )
 
             # Prepare output and metadata
             output = {
@@ -200,13 +183,12 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
                 "original_size": orig_size,
                 "model_size": tuple(image_tensor.shape[-2:]),
                 "confidence_threshold": confidence,
-                "detected_dental_morphologies": list(results.keys()),
+                "detected_dental_morphologies": list(set(d["dental_morphology"] for d in detections)),
                 "analysis_status": "completed",
             }
             return output, metadata
 
         except Exception as e:
-            # Handle errors and prepare error output and metadata
             error_output = {"error": str(e)}
             error_metadata = {
                 "image_path": image_path,
@@ -220,67 +202,43 @@ class IntraoralImageDentalMorphologyDetectionTool(BaseTool):
         image_path: str,
         confidence: float,
         dental_morphology_types: Optional[List[str]] = None,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> Tuple[Dict[str, Any], Dict]:
         """Async version of _run."""
         return self._run(image_path, confidence, dental_morphology_types)
 
-    @staticmethod
-    def _convert_bbox_to_xyxy(box_orig):
-        """Convert bbox from cx, cy, w, h to xmin, ymin, xmax, ymax."""
-        cx, cy, w, h = box_orig
-        x1 = round(float(cx - w / 2))
-        y1 = round(float(cy - h / 2))
-        x2 = round(float(cx + w / 2))
-        y2 = round(float(cy + h / 2))
-        return [x1, y1, x2, y2]
-
     def _save_visualization(self, image_path: str, output: IntraoralImageDentalMorphologyDetectionOutput) -> str:
-        """
-        Visualize the dental morphology detection results and save the visualization as an image.
-
-        Args:
-            image_path (str): Path to the input intraoral image.
-            output (IntraoralImageDentalMorphologyDetectionOutput): Detection output containing dental morphology type, bounding boxes, and scores.
-        """
-        # Load the original image
+        """Visualize the detection results and save as image."""
         orig_image = Image.open(image_path).convert("RGB")
-        orig_w, orig_h = orig_image.size
-
-        # Create a figure and axis for visualization
         fig, ax = plt.subplots(1, figsize=(12, 10))
         ax.imshow(orig_image)
         ax.axis('off')
-        ax.set_title(f"Intraoral Image Dental Morphology Detection Results: {os.path.basename(image_path)}")
+        ax.set_title(f"Dental Morphology Detection: {os.path.basename(image_path)}")
 
-        # Use different colors for different dental morphology detections
-        colors = plt.cm.rainbow(np.linspace(0, 1, len(output.detections)))
+        unique_types = list(set(d['dental_morphology'] for d in output.detections))
+        color_map = {t: plt.cm.rainbow(i / max(len(unique_types), 1)) for i, t in enumerate(unique_types)}
 
-        # Draw each detection
-        for i, detection in enumerate(output.detections):
-            bbox = detection['bbox']  # [xmin, ymin, xmax, ymax]
-            dental_morphology_type = detection['dental_morphology']
+        for detection in output.detections:
+            bbox = detection['bbox']
+            morphology_type = detection['dental_morphology']
             score = detection['score']
 
-            # Extract bounding box coordinates
             x_min, y_min, x_max, y_max = bbox
+            color = color_map[morphology_type]
 
-            # Draw the bounding box
             rect = patches.Rectangle(
                 (x_min, y_min), x_max - x_min, y_max - y_min,
-                linewidth=2, edgecolor=colors[i % len(colors)], facecolor='none'
+                linewidth=2, edgecolor=color, facecolor='none'
             )
             ax.add_patch(rect)
 
-            # Add a label with the dental morphology type and confidence score
-            label = f"{dental_morphology_type} ({score:.2f})"
+            label = f"{morphology_type} ({score:.2f})"
             ax.text(
                 x_min, y_min - 5, label,
                 fontsize=9, color='white',
-                bbox=dict(facecolor=colors[i % len(colors)], alpha=0.5)
+                bbox=dict(facecolor=color, alpha=0.5)
             )
 
-        # Save the visualization
         save_path = self.temp_dir / f"detection_{uuid.uuid4().hex[:8]}.png"
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.tight_layout()
