@@ -155,10 +155,11 @@ class CytopathologyCellNucleusGradingTool(BaseTool):
             print(f"results: {results}")
 
             # Save visualization
-            viz_path = os.path.join(self.temp_dir, f"visualized_{uuid.uuid4().hex[:8]}.png")
-            os.makedirs(os.path.dirname(viz_path), exist_ok=True)
-            visualized_output.save(viz_path)
-            print(f"Visualization saved to: {viz_path}")
+            viz_path = None
+            # viz_path = os.path.join(self.temp_dir, f"visualized_{uuid.uuid4().hex[:8]}.png")
+            # os.makedirs(os.path.dirname(viz_path), exist_ok=True)
+            # visualized_output.save(viz_path)
+            # print(f"Visualization saved to: {viz_path}")
 
             # Prepare output and metadata
             output = {

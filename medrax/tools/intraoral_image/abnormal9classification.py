@@ -151,10 +151,11 @@ class IntraoralImageAbnormal9ClassificationTool(BaseTool):
             # Create output object
             output = IntraoralImageAbnormal9ClassificationOutput(predicted_class=self.id2name[pred_class[0]], confidence=float(pred_conf[0]))
             # Save visualization
-            viz_path = self._save_visualization(
-                    image_path=image_path,
-                    pred_class=self.id2name[pred_class[0]],
-                    )
+            viz_path = None
+            # viz_path = self._save_visualization(
+            #         image_path=image_path,
+            #         pred_class=self.id2name[pred_class[0]],
+            #         )
 
             # Prepare output and metadata
             output = {

@@ -206,10 +206,11 @@ class CephalometricXRayLandmarkDetectionTool(BaseTool):
             output = CephalometricXRayLandmarkDetectionOutput(detections=landmarks)
 
             # Save visualization
-            viz_path = self._save_visualization(
-                    image_path=image_path,
-                    pred_all_points=pred_all_points,
-                    )
+            viz_path = None
+            # viz_path = self._save_visualization(
+            #         image_path=image_path,
+            #         pred_all_points=pred_all_points,
+            #         )
 
             # Prepare output and metadata
             output = {

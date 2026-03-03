@@ -18,7 +18,7 @@ from .panoramic_radiograph.periapicalLesionSubClassDetection import *
 from .panoramic_radiograph.jawStructureSegmentation import *
 
 from .periapical_radiograph.diseaseSegmentation import *
-from .periapical_radiograph.abnormal7classification import *
+from .periapical_radiograph.abnormality7Classification import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
 
@@ -27,7 +27,7 @@ from .intraoral_image.gingivitisDetection import *
 from .intraoral_image.fenestrationDetection import *
 from .intraoral_image.malocclusionIssuesDetection import *
 from .intraoral_image.abnormal9classification import *
-from .intraoral_image.dentalMorphologiesDetection import *
+from .intraoral_image.toothTypeDetection import *
 
 from .cytopathology.cellNucleusSegmentation import *
 from .cytopathology.cellNucleusGrading import *

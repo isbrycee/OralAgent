@@ -35,6 +35,7 @@ from langchain_openai import ChatOpenAI
 from interface import create_demo
 from medrax.agent import *
 from medrax.tools import *
+from medrax.tools.get_tools import get_all_tools_factories, DEFAULT_SELECTED_TOOL_NAMES
 from medrax.utils import *
 
 warnings.filterwarnings("ignore")
@@ -79,187 +80,10 @@ def initialize_agent(
     enriched_query_template = prompts.get("ENRICHED_QUERY_TEMPLATE")
     modality_section_template = prompts.get("MODALITY_SECTION_TEMPLATE")
 
-    # Define all available tools with their initialization functions
-    all_tools = {
-        # "ChestXRayClassifierTool": lambda: ChestXRayClassifierTool(device=device),
-        # "ChestXRaySegmentationTool": lambda: ChestXRaySegmentationTool(device=device),
-        # "LlavaMedTool": lambda: LlavaMedTool(cache_dir=model_dir, device=device, load_in_8bit=True),
-        # "XRayVQATool": lambda: XRayVQATool(cache_dir=model_dir, device=device),
-        # "ChestXRayReportGeneratorTool": lambda: ChestXRayReportGeneratorTool(
-        #     cache_dir=model_dir, device=device
-        # ),
-        # "XRayPhraseGroundingTool": lambda: XRayPhraseGroundingTool(
-        #     cache_dir=model_dir, temp_dir=temp_dir, load_in_8bit=True, device=device
-        # ),
-        # "ChestXRayGeneratorTool": lambda: ChestXRayGeneratorTool(
-        #     model_path=f"{model_dir}/roentgen", temp_dir=temp_dir, device=device
-        # ),
-        # "ImageVisualizerTool": lambda: ImageVisualizerTool(),
-        # "DicomProcessorTool": lambda: DicomProcessorTool(temp_dir=temp_dir),
-        
-        ###################### add by bryce ######################
-        # for Panoramic X-ray modality
-        "PanoramicXRayToothIdDetectionTool": lambda: PanoramicXRayToothDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool": lambda: PanoramicXRayPeriapicalLesionSubClassDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "PanoramicXRayDiseaseSegmentationTool": lambda: PanoramicXRayDiseaseSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "PanoramicXRayJawStructureSegmentationTool": lambda: PanoramicXRayJawStructureSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        # for Periapical X-ray modality
-        "PeriapicalXRayDiseaseSegmentationTool": lambda: PeriapicalXRayDiseaseSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        "PeriapicalXRayAbnormal7ClassificationTool": lambda: PeriapicalXRayAbnormal7ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_Abnormal_7Classification.safetensors", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_Abnormal_7Classification.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        # for Cephalometric X-ray modality
-        "CephalometricXRayLandmarkDetectionTool": lambda: CephalometricXRayLandmarkDetectionTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth", 
-            prototype_path=f"{model_dir}/config_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth",  
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.json",
-            image_size=(512, 512),
-            temp_dir=temp_dir,
-            device=device
-        ),
-        
-        # for Intraoral Image modality
-        "IntraoralImageConditionDetectionTool": lambda: IntraoralImageConditionDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_4conditions.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_4conditions.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_4conditions.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "IntraoralImageGingivitisDetectionTool": lambda: IntraoralImageGingivitisDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_gingivitis.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_gingivitis.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_gingivitis.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "IntraoralImageFenestrationDetectionTool": lambda: IntraoralImageFenestrationDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_fenestration.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_fenestration.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_fenestration.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "IntraoralImageDentalMorphologyDetectionTool": lambda: IntraoralImageDentalMorphologyDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "IntraoralImageMalocclusionIssuesDetectionTool": lambda: IntraoralImageMalocclusionIssuesDetectionTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.py",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.json", 
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        "IntraoralImageImageLevelConditionDetectionTool": lambda: IntraoralImageAbnormal9ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.safetensors", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        
-        # for Cytopathology modality
-        "CytopathologyCellNucleusSegmentationTool": lambda: CytopathologyCellNucleusSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-        "CytopathologyCellNucleusGradingTool": lambda: CytopathologyCellNucleusGradingTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-
-        # for Histopathology modality
-        "HistopathologyOSCCSegmentationTool": lambda: HistopathologyOSCCSegmentationTool(
-            config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.json", 
-            confidence_threshold=0.3,
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        "HistopathologyOSMFOSCCClassificationTool": lambda: HistopathologyOSCC5ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.safetensors", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        "HistopathologyLeukoplakiaOSCCClassificationTool": lambda: HistopathologyLeukoplakia3ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.safetensors", 
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
-            temp_dir=temp_dir,
-            device=device
-        ),
-
-        # "HistopathologyOSCCMulti6ClassificationTool": lambda: HistopathologyOSCCMulti6ClassificationTool(
-        #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Histopathology_OSCC_Multi6Classification.safetensors", 
-        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSCC_Multi6Classification.json",
-        #     temp_dir=temp_dir,
-        #     device=device
-        # ),
-
-        ###################### for RAG ######################
-        "MedicalRAGTool": lambda: RAGTool(config=rag_config),
-    }
-
-    # Initialize only selected tools or all if none specified
-    # tools_dict = {}
+    # Get tool factories from single source of truth (medrax.tools.get_tools)
+    all_tools = get_all_tools_factories(model_dir, temp_dir, device, rag_config)
+    tools_to_use = tools_to_use or list(all_tools.keys())
     tools_dict: Dict[str, BaseTool] = {}
-    tools_to_use = tools_to_use or all_tools.keys()
     for tool_name in tools_to_use:
         if tool_name in all_tools:
             tools_dict[tool_name] = all_tools[tool_name]()
@@ -300,49 +124,8 @@ if __name__ == "__main__":
     """
     print("Starting server...")
 
-    # Example: initialize with only specific tools
-    # Here three tools are commented out, you can uncomment them to use them
-    selected_tools = [
-        # "ImageVisualizerTool", # For displaying images in the UI
-        # "DicomProcessorTool",
-        # "ChestXRayClassifierTool",
-        # "ChestXRaySegmentationTool",
-        # "ChestXRayReportGeneratorTool",
-        # "XRayVQATool",
-        # "LlavaMedTool",
-        # "XRayPhraseGroundingTool",
-        # "ChestXRayGeneratorTool",
-
-        ################## Add by Bryce ##################
-        # "PanoramicXRayToothIdDetectionTool",
-        # "PanoramicXRayBoneLossSegmentationTool",
-        # "PanoramicXRayDiseaseSegmentationTool",
-        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-        # "PanoramicXRayJawStructureSegmentationTool",
-        # "PeriapicalXRayDiseaseSegmentationTool",
-        "PeriapicalXRayAbnormal7ClassificationTool",
-
-        # "CephalometricXRayLandmarkDetectionTool",
-        
-        # "IntraoralImageConditionDetectionTool",
-        # "IntraoralImageGingivitisDetectionTool",
-        # "IntraoralImageFenestrationDetectionTool",
-        # "IntraoralImageMalocclusionIssuesDetectionTool",
-        # "IntraoralImageImageLevelConditionDetectionTool",
-        "IntraoralImageAbnormal9ClassificationTool",
-        "IntraoralImageDentalMorphologyDetectionTool",
-        
-        # "CytopathologyCellNucleusSegmentationTool",
-        # "CytopathologyCellNucleusGradingTool",
-
-        "HistopathologyLeukoplakiaOSCCClassificationTool",
-        "HistopathologyOSMFOSCCClassificationTool",
-        # "HistopathologyOSCCSegmentationTool",
-        
-        ################## for RAG ##################
-        # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge
-    ]
-
+    # Use default tool list from medrax.tools.get_tools (customize DEFAULT_SELECTED_TOOL_NAMES there)
+    selected_tools = DEFAULT_SELECTED_TOOL_NAMES
 
     ################## for RAG ##################
     # Configure the Retrieval Augmented Generation (RAG) system
@@ -373,7 +156,7 @@ if __name__ == "__main__":
     agent, tools_dict = initialize_agent(
         "medrax/docs/system_prompts.txt",
         tools_to_use=selected_tools,
-        model_dir="/home/siyuan/projects/LLMs/OralAgent/model_dir",  # Change this to the path of the model weights
+        model_dir="/data/OralGPT/OralGPT-expert-model-repository",  # Change this to the path of the model weights
         temp_dir="temp",  # Change this to the path of the temporary directory
         device="cuda",  # Change this to the device you want to use
         model="gpt-5-mini",  # Change this to the model you want to use, e.g. gpt-4o-mini

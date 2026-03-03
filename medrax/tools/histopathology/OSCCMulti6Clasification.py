@@ -155,10 +155,11 @@ class HistopathologyOSCCMulti6ClassificationTool(BaseTool):
             # Create output object
             output = HistopathologyOSCCMulti6ClassificationOutput(predicted_class=[self.id2name[i] for i in pred_class], confidence=[float(c) for c in pred_conf])
             # Save visualization
-            viz_path = self._save_visualization(
-                    image_path=image_path,
-                    pred_class=[self.id2name[i] for i in pred_class],
-                    )
+            viz_path = None
+            # viz_path = self._save_visualization(
+            #         image_path=image_path,
+            #         pred_class=[self.id2name[i] for i in pred_class],
+            #         )
 
             # Prepare output and metadata
             output = {

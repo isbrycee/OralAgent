@@ -3,6 +3,10 @@
 python launch_OralAgent.py
 ```
 
+```python
+ORAL_AGENT_MAX_WORKERS_PER_GPU=2 ./run_launch_OralAgent_multi_workers.sh 
+```
+
 ## Citation
 If you find this work useful, please cite our paper:
 ```bibtex
