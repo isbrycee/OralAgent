@@ -141,8 +141,8 @@ def initialize_agent(
         ),
 
         "PeriapicalXRayAbnormal7ClassificationTool": lambda: PeriapicalXRayAbnormal7ClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Periapical_Abnormal_7Classification.safetensors", 
-            coco_names_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_Periapical_Abnormal_7Classification.json",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_Abnormal_7Classification.safetensors", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_Abnormal_7Classification.json",
             temp_dir=temp_dir,
             device=device
         ),
@@ -179,13 +179,13 @@ def initialize_agent(
             temp_dir=temp_dir,
             device=device
         ),
-        # "IntraoralImageDentalMorphologyDetectionTool": lambda: IntraoralImageDentalMorphologyDetectionTool(
-        #     config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.py",
-        #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.pth", 
-        #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.json", 
-        #     temp_dir=temp_dir,
-        #     device=device
-        # ),
+        "IntraoralImageDentalMorphologyDetectionTool": lambda: IntraoralImageDentalMorphologyDetectionTool(
+            config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.py",
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.pth", 
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9dentalMorphologies.json", 
+            temp_dir=temp_dir,
+            device=device
+        ),
         "IntraoralImageMalocclusionIssuesDetectionTool": lambda: IntraoralImageMalocclusionIssuesDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_introral_image_9malocclusionIssues.pth", 
@@ -324,19 +324,20 @@ if __name__ == "__main__":
 
         # "CephalometricXRayLandmarkDetectionTool",
         
-        "IntraoralImageConditionDetectionTool",
-        "IntraoralImageGingivitisDetectionTool",
-        "IntraoralImageFenestrationDetectionTool",
-        "IntraoralImageMalocclusionIssuesDetectionTool",
-        "IntraoralImageImageLevelConditionDetectionTool",
+        # "IntraoralImageConditionDetectionTool",
+        # "IntraoralImageGingivitisDetectionTool",
+        # "IntraoralImageFenestrationDetectionTool",
+        # "IntraoralImageMalocclusionIssuesDetectionTool",
+        # "IntraoralImageImageLevelConditionDetectionTool",
         "IntraoralImageAbnormal9ClassificationTool",
+        "IntraoralImageDentalMorphologyDetectionTool",
         
-        "CytopathologyCellNucleusSegmentationTool",
-        "CytopathologyCellNucleusGradingTool",
+        # "CytopathologyCellNucleusSegmentationTool",
+        # "CytopathologyCellNucleusGradingTool",
 
         "HistopathologyLeukoplakiaOSCCClassificationTool",
-        "HistopathologyOSMFOSCCClassificationTool"
-        "HistopathologyOSCCSegmentationTool",
+        "HistopathologyOSMFOSCCClassificationTool",
+        # "HistopathologyOSCCSegmentationTool",
         
         ################## for RAG ##################
         # "MedicalRAGTool", # For retrieval-augmented generation with medical knowledge

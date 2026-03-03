@@ -27,6 +27,7 @@ from .intraoral_image.gingivitisDetection import *
 from .intraoral_image.fenestrationDetection import *
 from .intraoral_image.malocclusionIssuesDetection import *
 from .intraoral_image.abnormal9classification import *
+from .intraoral_image.dentalMorphologiesDetection import *
 
 from .cytopathology.cellNucleusSegmentation import *
 from .cytopathology.cellNucleusGrading import *
