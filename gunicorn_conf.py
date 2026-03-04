@@ -3,7 +3,23 @@ Gunicorn 多 worker 配置：根据 GPU 数量启动多个服务端，每个 wor
 使用方式: gunicorn -k uvicorn.workers.UvicornWorker -c gunicorn_conf.py launch_OralAgent:OralAgent
 """
 import os
+from pathlib import Path
+from datetime import datetime
 from gpu_utils import get_gpu_count, get_recommended_workers
+
+# 请求日志根目录，与 launch_OralAgent 中 DEFAULT_REQUEST_LOG_DIR 一致
+_REQUEST_LOG_DIR = os.getenv("ORALAGENT_REQUEST_LOG_DIR", "logs/requests")
+
+
+def on_starting(server):
+    """Master 进程启动时设置统一的请求日志 session 目录，并预先创建目录，保证多 worker 共用一个文件夹。"""
+    session_dir = datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.environ["ORALAGENT_REQUEST_LOG_SESSION_DIR"] = session_dir
+    if _REQUEST_LOG_DIR:
+        log_path = Path(_REQUEST_LOG_DIR) / session_dir
+        log_path.mkdir(parents=True, exist_ok=True)
+        if os.environ.get("ORAL_AGENT_DEBUG"):
+            print(f"[OralAgent] request log session dir: {log_path}")
 
 # 可选：每个 agent 实例预估显存（GB），用于按显存推算 worker 数
 _VRAM_GB = os.environ.get("ORAL_AGENT_VRAM_PER_AGENT_GB")

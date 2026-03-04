@@ -253,7 +253,7 @@ class Agent:
         if isinstance(user_input, ToolMessage) or isinstance(user_input, AIMessage):
             return state
 
-        print("user_input:", user_input)
+        # print("user_input:", user_input)
 
         user_text_query = self.extract_text_content(user_input)
         
