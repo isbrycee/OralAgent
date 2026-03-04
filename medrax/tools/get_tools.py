@@ -465,7 +465,7 @@ def get_tools(
         panoramic_disease_segmentation_tool,
         panoramic_jaw_structure_tool,
         periapical_disease_segmentation_tool,
-        # periapical_abnormality_classification_tool,
+        periapical_abnormality_classification_tool,
         cephalometric_landmark_detection_tool,
         intraoral_condition_detection_tool,
         intraoral_gingivitis_detection_tool,
