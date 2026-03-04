@@ -46,7 +46,7 @@ class PanoramicXRayPeriapicalLesionSubClassDetectionInput(BaseModel):
     """Input schema for the Panoramic X-ray Periapical Lesion Subclass Detection Tool."""
 
     image_path: str = Field(..., description="Path to the Panoramic X-ray image file to be processed")
-    confidence: Optional[float] = Field(0.3, description="Confidence threshold for detection")
+    confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
     periapical_lesion_names: Optional[List[str]] = Field(
         None,
         description="A list of periapical lesion subclass names to detect. If set to None, all available subclasses will be detected. "
@@ -132,7 +132,7 @@ class PanoramicXRayPeriapicalLesionSubClassDetectionTool(BaseTool):
 
     def _run(self, 
             image_path: str,
-            confidence: Optional[float] = 0.3,
+            confidence: Optional[float] = 0.5,
             periapical_lesion_names: Optional[List[str]] = None,
             run_manager: Optional[CallbackManagerForToolRun] = None,
             ) -> PanoramicXRayPeriapicalLesionSubClassDetectionOutput:

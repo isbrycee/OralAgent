@@ -47,7 +47,7 @@ class PanoramicXRayToothDetectionInput(BaseModel):
     """Input schema for the Panoramic X-ray Tooth Detection Tool."""
 
     image_path: str = Field(..., description="Path to the Panoramic X-ray image file to be processed")
-    confidence: Optional[float] = Field(0.3, description="Confidence threshold for detection")
+    confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
     tooth_ids: Optional[List[str]] = Field(
         None,
         description="List of tooth IDs to detect. If None, all 32 teeth (FDI standard IDs: 11, 12, 13, ..., 48) will be detected. "
@@ -140,7 +140,7 @@ class PanoramicXRayToothDetectionTool(BaseTool):
 
     def _run(self, 
             image_path: str,
-            confidence: Optional[float] = 0.3,
+            confidence: Optional[float] = 5,
             tooth_ids: Optional[List[str]] = None,
             run_manager: Optional[CallbackManagerForToolRun] = None,
             ) -> PanoramicXRayToothDetectionOutput:

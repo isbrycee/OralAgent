@@ -35,7 +35,6 @@ def build_model_main(args):
 class IntraoralImageToothTypeDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Dental Morphology Detection Tool."""
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for dental morphology detection")
-    confidence: Optional[float] = Field(0.3, description="Confidence threshold for detection")
     dental_morphology_types: Optional[List[str]] = Field(
         None,
         description="A list of dental morphology type names to detect. If set to None, all available types will be detected. "
@@ -69,6 +68,7 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
     model: Any = None
     postprocessors: Any = None
     id2name: Any = None
+    confidence: float = 0.5
 
     def __init__(self, config_path: str, checkpoint_path: str, coco_names_path: str, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
         """Initialize the Intraoral Image Dental Morphology Detection Tool."""
@@ -81,6 +81,7 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
         self.id2name = self._load_category_names()
         self.temp_dir = temp_dir if isinstance(temp_dir, Path) else Path(temp_dir)
         self.temp_dir.mkdir(exist_ok=True)
+        self.confidence = 0.5
 
     def _load_model(self):
         """Load the DINO model."""
@@ -129,7 +130,6 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
 
     def _run(self, 
             image_path: str,
-            confidence: Optional[float] = 0.3,
             dental_morphology_types: Optional[List[str]] = None,
             run_manager: Optional[CallbackManagerForToolRun] = None,
             ) -> IntraoralImageToothTypeDetectionOutput:
@@ -143,7 +143,7 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
             for i in range(len(outputs['boxes'])):
                 score = outputs['scores'][i].item()
 
-                if score < confidence:
+                if score < self.confidence:
                     continue
 
                 box_xyxy = outputs['boxes'][i].cpu().numpy().tolist()
@@ -182,7 +182,7 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
                 "detection_image_path": viz_path,
                 "original_size": orig_size,
                 "model_size": tuple(image_tensor.shape[-2:]),
-                "confidence_threshold": confidence,
+                "confidence_threshold": self.confidence,
                 "detected_dental_morphologies": list(set(d["dental_morphology"] for d in detections)),
                 "analysis_status": "completed",
             }
@@ -200,12 +200,11 @@ class IntraoralImageToothTypeDetectionTool(BaseTool):
     async def _arun(
         self,
         image_path: str,
-        confidence: float,
         dental_morphology_types: Optional[List[str]] = None,
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> Tuple[Dict[str, Any], Dict]:
         """Async version of _run."""
-        return self._run(image_path, confidence, dental_morphology_types)
+        return self._run(image_path, dental_morphology_types)
 
     @staticmethod
     def _convert_bbox_to_xyxy(box_orig):
