@@ -239,13 +239,21 @@ class Agent:
 
     def preprocess_request(self, state: AgentState) -> AgentState:
         """
-        Process the request using the language model.
+        Preprocess the latest user input before the language model runs.
+
+        We determine the "current turn" (all consecutive user messages at the end of
+        history until an AI/Tool message) and count how many images appear in that
+        turn. For a single image (or no image), we run intent recognition and
+        modality detection, build an enriched query (user query + intent + modality +
+        image path), and replace the user's text content with this enriched query so
+        the model and tools get a single, structured prompt. For multiple images in
+        the same turn, we skip intent and modality and return state unchanged.
 
         Args:
             state (AgentState): The current state of the agent.
 
         Returns:
-            Dict[str, List[AnyMessage]]: A dictionary containing the model's response.
+            AgentState: The same state, with user message content possibly replaced by the enriched query.
         """
 
         user_input = state["messages"][-1]
@@ -253,17 +261,16 @@ class Agent:
         if isinstance(user_input, ToolMessage) or isinstance(user_input, AIMessage):
             return state
 
-        # 当前轮：从末尾向前，直到遇到 AI/Tool 消息为止的所有用户消息（state 含多轮数据）
+        # Current turn: all user messages from the end of history until an AI/Tool message (state may contain multiple turns).
         current_turn_messages = self._get_current_turn_user_messages(state["messages"])
-        # 当前轮下所有图片（可能分布在多条用户消息中）
+        # Collect all image paths in the current turn (may span several user messages).
         image_paths: List[Optional[str]] = []
         for msg in current_turn_messages:
             image_paths.extend(self.extract_image_paths_from_message(msg))
-        # 当前轮内用户上传了多张图片：不进行意图识别和模态检测，直接返回原 state
+        # Single-turn multi-image: skip intent recognition and modality detection, return state as-is.
+        # Single image (or no image): we will run intent recognition and modality detection below and enrich the user query.
         if len(image_paths) > 1:
             return state
-
-        # print("user_input:", user_input)
 
         user_text_query = self.extract_text_content(user_input)
 
