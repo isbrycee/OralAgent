@@ -108,28 +108,30 @@ class ChatInterface:
         messages = []
         image_path = self.original_file_path or display_image
 
-        if image_path is not None:
-            # Send path for tools
-            messages.append({"role": "user", "content": f"image_path: {image_path}"})
+        # 单条用户消息的 content：可含文本 + 图片，避免一张图被数成两条消息导致多图逻辑/路径解析错误
+        content_parts: List[dict] = []
 
-            # Load and encode image for multimodal
+        if image_path is not None:
             with open(image_path, "rb") as img_file:
                 img_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
-            messages.append(
+            # 文本里带 path 供 agent 取路径；image_url 里同时带 url（多模态）和 image_path（工具调用）
+            content_parts.append({"type": "text", "text": f"image_path: {image_path}"})
+            content_parts.append(
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"},
-                        }
-                    ],
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{img_base64}",
+                        "image_path": image_path,
+                    },
                 }
             )
 
-        if message is not None:
-            messages.append({"role": "user", "content": [{"type": "text", "text": message}]})
+        if message is not None and message.strip():
+            # 用户文字单独成块，便于 agent 做意图识别（不把 image_path 行当 query）
+            content_parts.append({"type": "text", "text": message.strip()})
+
+        if content_parts:
+            messages.append({"role": "user", "content": content_parts})
 
         try:
             for event in self.agent.workflow.stream(

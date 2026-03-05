@@ -3,7 +3,7 @@ import operator
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime
-from typing import List, Dict, Any, TypedDict, Annotated, Optional
+from typing import List, Dict, Any, TypedDict, Annotated, Optional, Union
 
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import AnyMessage, SystemMessage, ToolMessage, AIMessage
@@ -253,30 +253,40 @@ class Agent:
         if isinstance(user_input, ToolMessage) or isinstance(user_input, AIMessage):
             return state
 
+        # 当前轮：从末尾向前，直到遇到 AI/Tool 消息为止的所有用户消息（state 含多轮数据）
+        current_turn_messages = self._get_current_turn_user_messages(state["messages"])
+        # 当前轮下所有图片（可能分布在多条用户消息中）
+        image_paths: List[Optional[str]] = []
+        for msg in current_turn_messages:
+            image_paths.extend(self.extract_image_paths_from_message(msg))
+        # 当前轮内用户上传了多张图片：不进行意图识别和模态检测，直接返回原 state
+        if len(image_paths) > 1:
+            return state
+
         # print("user_input:", user_input)
 
         user_text_query = self.extract_text_content(user_input)
-        
-        newest_image_content = self.extract_image_content(state["messages"])  # 最新的图像 message
 
-        # 图像绝对路径：从最新图像 message 的 content 解析（优先 image_url.image_path）
-        image_path = None
-        if newest_image_content and isinstance(newest_image_content.get("content"), list):
-            for item in newest_image_content["content"]:
-                if isinstance(item, dict) and item.get("type") == "image_url":
-                    url_obj = item.get("image_url")
-                    if isinstance(url_obj, dict):
-                        if "image_path" in url_obj:
-                            path = url_obj.get("image_path")
-                        elif "url" in url_obj:
-                            path = url_obj.get("url")
-                        if path and isinstance(path, str):
-                            image_path = path.strip()
-                            break
-        if image_path is None and newest_image_content and isinstance(newest_image_content.get("content"), str):
-            content = newest_image_content["content"]
-            if "image_path:" in content:
-                image_path = content.split("image_path:")[1].strip()
+        # 单图或无图：取当前用户输入中的唯一图片路径（若有）
+        image_path = image_paths[0] if image_paths else None
+        if image_path is None:
+            newest_image_content = self.extract_image_content(state["messages"])
+            if newest_image_content and isinstance(newest_image_content.get("content"), list):
+                for item in newest_image_content["content"]:
+                    if isinstance(item, dict) and item.get("type") == "image_url":
+                        url_obj = item.get("image_url")
+                        if isinstance(url_obj, dict):
+                            if "image_path" in url_obj:
+                                path = url_obj.get("image_path")
+                            elif "url" in url_obj:
+                                path = url_obj.get("url")
+                            if path and isinstance(path, str):
+                                image_path = path.strip()
+                                break
+            if image_path is None and newest_image_content and isinstance(newest_image_content.get("content"), str):
+                content = newest_image_content["content"]
+                if "image_path:" in content:
+                    image_path = content.split("image_path:")[1].strip()
 
         # 网页上传时 image_url 为 base64，无法作为文件路径；从同轮对话中查找显式的 image_path: 路径
         if image_path and (image_path.startswith("data:") or (not Path(image_path).is_file())):
@@ -301,7 +311,6 @@ class Agent:
             modality_section += f"\nImage file path (you MUST use this exact path for the image_path argument in tool calls): {image_path}"
 
         user_intent = self.recognize_intent(user_text_query)
-        # print("user_intent: ", user_intent)
 
         processed_user_query = self.enriched_query_template.format(
             user_text_query=user_text_query or "",
@@ -310,34 +319,72 @@ class Agent:
         )
         print(f"enriched query:\n{processed_user_query}")
 
-        next(
-            item.update({"text": processed_user_query})
-            for item in state["messages"][-1]["content"]
-            if item.get("type") == "text"
-        )
+        # 把用于意图的 text 块替换为 enriched query；若无（仅图片无文字）则替换第一个 text 块，保证模型收到 modality/intent
+        last_content = state["messages"][-1].get("content") if isinstance(state["messages"][-1], dict) else getattr(state["messages"][-1], "content", None)
+        if isinstance(last_content, list):
+            updated = False
+            for item in last_content:
+                if item.get("type") != "text":
+                    continue
+                raw = (item.get("text") or "").strip()
+                if raw.startswith("image_path:"):
+                    continue
+                item["text"] = processed_user_query
+                updated = True
+                break
+            if not updated:
+                for item in last_content:
+                    if item.get("type") == "text":
+                        item["text"] = processed_user_query
+                        break
 
         return state
 
 
     def extract_text_content(self, input_dict):
         """
-        Extract the text content for type 'text' and the text for type 'image' if present.
+        Extract the text content for type 'text'，用于意图识别等。若存在多段 text（如 image_path 行 + 用户问题），
+        优先返回用户问题（非 image_path: 开头的段落）。
 
         Args:
             input_dict (dict): The input dictionary containing 'content' list.
 
         Returns:
-            tuple: A tuple containing:
-                - The text content for type 'text' (str).
-                - The text content for type 'image' if present, otherwise None.
+            str: 用作 user query 的文本；无则 None。
         """
         text_content = None
+        fallback_text = None
+        for item in input_dict.get("content", []):
+            if item.get("type") != "text":
+                continue
+            raw = item.get("text") or ""
+            if not raw.strip():
+                continue
+            if raw.strip().startswith("image_path:"):
+                fallback_text = fallback_text or raw
+                continue
+            text_content = raw
+            break
+        return text_content if text_content is not None else fallback_text
 
-        for item in input_dict.get('content', []):
-            if item.get('type') == 'text' and text_content is None:
-                text_content = item.get('text')
+    def _get_current_turn_user_messages(self, messages: List[AnyMessage]) -> List[AnyMessage]:
+        """
+        从多轮 state 中取出「当前轮」的用户消息：从末尾向前，直到遇到 AIMessage 或 ToolMessage 为止。
 
-        return text_content
+        Args:
+            messages: state["messages"]
+
+        Returns:
+            当前轮内的所有用户消息（顺序与 state 中一致）。
+        """
+        if not messages:
+            return []
+        end = len(messages)
+        for i in range(len(messages) - 1, -1, -1):
+            msg = messages[i]
+            if isinstance(msg, (AIMessage, ToolMessage)):
+                return list(messages[i + 1 : end])
+        return list(messages[0 : end])
 
     def extract_image_content(self, messages):
         """
@@ -382,6 +429,37 @@ class Agent:
                             return message if isinstance(message, dict) else {"content": content}
 
         return None
+
+    def extract_image_paths_from_message(self, message: Union[Dict, Any]) -> List[Optional[str]]:
+        """
+        从单条用户消息中解析出所有图片路径（或 url），返回路径列表。
+        用于判断当前输入是否包含多图，以及获取本轮用户输入的全部图片。
+
+        Args:
+            message: 单条消息，可为 dict（含 "content"）或具 .content 属性的对象。
+
+        Returns:
+            当前消息中所有 image_url 对应的路径列表；无图片时返回 []。
+        """
+        paths: List[Optional[str]] = []
+        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+        if content is None:
+            return paths
+        if isinstance(content, str):
+            if "image_path:" in content:
+                paths.append(content.split("image_path:")[1].strip())
+            return paths
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "image_url":
+                    url_obj = item.get("image_url")
+                    if isinstance(url_obj, dict):
+                        p = url_obj.get("image_path") or url_obj.get("url")
+                        if p and isinstance(p, str):
+                            paths.append(p.strip())
+                        else:
+                            paths.append(None)
+        return paths
 
     def recognize_intent(self, query: str) -> str:
         """
