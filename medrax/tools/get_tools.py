@@ -10,6 +10,7 @@ from .panoramic_radiograph.jawStructureSegmentation import *
 
 from .periapical_radiograph.diseaseSegmentation import *
 from .periapical_radiograph.abnormality7Classification import *
+from .periapical_radiograph.disease7Classification import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
 
@@ -38,21 +39,27 @@ DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
     "PanoramicXRayDiseaseSegmentationTool",
     "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
     "PanoramicXRayJawStructureSegmentationTool",
+
     "PeriapicalXRayDiseaseSegmentationTool",
-    "PeriapicalXRayAbnormalityClassificationTool",
+    # "PeriapicalXRayAbnormalityClassificationTool",
+    "PeriapicalXRayDiseaseClassificationTool",
+
     "CephalometricXRayLandmarkDetectionTool",
+
     "IntraoralImageConditionDetectionTool",
     "IntraoralImageGingivitisDetectionTool",
     "IntraoralImageFenestrationDetectionTool",
     "IntraoralImageMalocclusionIssuesDetectionTool",
     "IntraoralImageImageLevelConditionDetectionTool",
     "IntraoralImageToothTypeDetectionTool",
+
     "CytopathologyCellNucleusSegmentationTool",
     "CytopathologyCellNucleusGradingTool",
+    
     "HistopathologyLeukoplakiaOSCCClassificationTool",
     "HistopathologyOSMFOSCCClassificationTool",
     "HistopathologyOSCCSegmentationTool",
-    "MedicalRAGTool",
+    # "MedicalRAGTool",
 ]
 
 
@@ -90,7 +97,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -109,7 +116,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -119,7 +126,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -130,7 +137,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -139,6 +146,14 @@ def get_all_tools_factories(
         return PeriapicalXRayAbnormal7ClassificationTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.safetensors",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.json",
+            temp_dir=temp_dir,
+            device=device,
+        )
+
+    def f_periapical_disease_cls():
+        return PeriapicalXRayDisease7ClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_ViTL_ImageLevel_Periapical_x-ray_7diseases.bin",
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_ViTL_ImageLevel_Periapical_7diseases.json",
             temp_dir=temp_dir,
             device=device,
         )
@@ -214,7 +229,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -224,7 +239,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -235,7 +250,7 @@ def get_all_tools_factories(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.json",
-            confidence_threshold=0.3,
+            confidence_threshold=0.5,
             temp_dir=temp_dir,
             device=device,
         )
@@ -269,6 +284,7 @@ def get_all_tools_factories(
         "PanoramicXRayJawStructureSegmentationTool": f_panoramic_jaw_structure,
         "PeriapicalXRayDiseaseSegmentationTool": f_periapical_disease_seg,
         "PeriapicalXRayAbnormalityClassificationTool": f_periapical_abnormality,
+        "PeriapicalXRayDiseaseClassificationTool": f_periapical_disease_cls,
         "CephalometricXRayLandmarkDetectionTool": f_cephalometric_landmark,
         "IntraoralImageConditionDetectionTool": f_intraoral_condition,
         "IntraoralImageGingivitisDetectionTool": f_intraoral_gingivitis,
@@ -320,7 +336,7 @@ def get_tools(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
@@ -328,26 +344,43 @@ def get_tools(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
+    panoramic_bone_loss_segmentation_tool = PanoramicXRayBoneLossSegmentationTool(
+        config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.yaml",
+        checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.pth",
+        coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.json",
+        confidence_threshold=0.5,
+        temp_dir=temp_dir,
+        device=device
+    )
+
 
     # Periapical X-ray tools
     periapical_disease_segmentation_tool = PeriapicalXRayDiseaseSegmentationTool(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
-    periapical_abnormality_classification_tool = PeriapicalXRayAbnormal7ClassificationTool(
-        checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.safetensors",
-        coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.json",
+    # periapical_abnormality_classification_tool = PeriapicalXRayAbnormal7ClassificationTool(
+    #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.safetensors",
+    #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.json",
+    #     temp_dir=temp_dir,
+    #     device=device
+    # )
+
+    periapical_disease_classification_tool = PeriapicalXRayDisease7ClassificationTool(
+        checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_ViTL_ImageLevel_Periapical_x-ray_7diseases.bin",
+        coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_ViTL_ImageLevel_Periapical_7diseases.json",
         temp_dir=temp_dir,
         device=device
     )
+
 
     # Cephalometric X-ray tools
     cephalometric_landmark_detection_tool = CephalometricXRayLandmarkDetectionTool(
@@ -407,7 +440,7 @@ def get_tools(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
@@ -415,7 +448,7 @@ def get_tools(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
@@ -425,7 +458,7 @@ def get_tools(
         config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth",
         coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.json",
-        confidence_threshold=0.3,
+        confidence_threshold=0.5,
         temp_dir=temp_dir,
         device=device
     )
@@ -460,21 +493,28 @@ def get_tools(
     # medical_rag_tool = RAGTool(config=rag_config)
 
     return [
-        panoramic_tooth_detection_tool,
-        panoramic_periapical_lesion_tool,
-        panoramic_disease_segmentation_tool,
-        panoramic_jaw_structure_tool,
+        # panoramic_tooth_detection_tool,
+        # panoramic_periapical_lesion_tool,
+        # panoramic_disease_segmentation_tool,
+        # panoramic_jaw_structure_tool,
+        # panoramic_bone_loss_segmentation_tool,
+
         periapical_disease_segmentation_tool,
-        periapical_abnormality_classification_tool,
+        # periapical_abnormality_classification_tool,
+        periapical_disease_classification_tool,
+
         cephalometric_landmark_detection_tool,
+
         intraoral_condition_detection_tool,
         intraoral_gingivitis_detection_tool,
         intraoral_fenestration_detection_tool,
         intraoral_tooth_type_detection_tool,
         intraoral_malocclusion_issues_detection_tool,
         intraoral_image_level_condition_detection_tool,
+
         cytopathology_cell_nucleus_segmentation_tool,
         cytopathology_cell_nucleus_grading_tool,
+
         histopathology_oscc_segmentation_tool,
         histopathology_osmf_oscc_classification_tool,
         histopathology_leukoplakia_oscc_classification_tool,

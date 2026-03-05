@@ -37,7 +37,7 @@ class NpEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class PeriapicalXRayAbnormal7Classification(BaseModel):
+class PeriapicalXRayAbnormal7ClassificationInput(BaseModel):
     """Input schema for the Abnormal Periapical X-Ray 7 Classification Tool."""
 
     image_path: str = Field(..., description="Path to the Periapical X-Ray image file to be processed")
@@ -54,13 +54,12 @@ class PeriapicalXRayAbnormal7ClassificationTool(BaseTool):
 
     name: str = "periapical_xray_abnormality_classification"
     description: str = (
-        "Classifies periapical x-ray into 7 abnormal categories,including: "
+        "Classifies periapical x-ray into 7 abnormal categories, including: "
         "Irreversible Pulpitis, Impacted Tooth, Improper Restoration, Apical Periodontitis, Embedded Tooth, Proximal Caries, Periodontitis. "
-        "The tool provides a visualization of the classified regions overlaid on the input image, along with their coordinates. "
         "Ensure the input periapical x-ray image is of high resolution and quality for accurate classification."
     )
 
-    args_schema: Type[BaseModel] = PeriapicalXRayAbnormal7Classification
+    args_schema: Type[BaseModel] = PeriapicalXRayAbnormal7ClassificationInput
 
     checkpoint_path: str = ""
     prototype_path: str = ""

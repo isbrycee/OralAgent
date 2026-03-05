@@ -19,6 +19,7 @@ from .panoramic_radiograph.jawStructureSegmentation import *
 
 from .periapical_radiograph.diseaseSegmentation import *
 from .periapical_radiograph.abnormality7Classification import *
+from .periapical_radiograph.disease7Classification import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
 
