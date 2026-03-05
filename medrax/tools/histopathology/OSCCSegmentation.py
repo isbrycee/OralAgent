@@ -70,7 +70,7 @@ class HistopathologyOSCCSegmentationTool(BaseTool):
     id2name: Any = None
     category_metadata: Any = None
 
-    def __init__(self, config_path: str, checkpoint_path: str, coco_names_path: str, confidence_threshold: float = 0.5, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
+    def __init__(self, config_path: str, checkpoint_path: str, coco_names_path: str, confidence_threshold: float = 0.6, device: Optional[str] = "cuda", temp_dir: Optional[Path] = Path("temp")):
         """Initialize the MaskDINO Histopathology OSCC Segmentation Tool."""
         super().__init__()
         self.cfg = self._setup_cfg(config_path, checkpoint_path, confidence_threshold)
