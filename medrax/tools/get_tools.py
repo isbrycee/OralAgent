@@ -13,7 +13,7 @@ from .periapical_radiograph.abnormality7Classification import *
 from .periapical_radiograph.disease7Classification import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
-from .cephalometric_radiograph.cephalometricCVMstatusClassification import *
+from .cephalometric_radiograph.cephalometricCVMstageClassification import *
 
 from .intraoral_image.conditionDetection import *
 from .intraoral_image.gingivitisDetection import *
@@ -35,18 +35,17 @@ from .rag import *
 
 # Default list of tool names to use when initializing the agent (single source of truth)
 DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
-    "PanoramicXRayToothIdDetectionTool",
-    "PanoramicXRayBoneLossSegmentationTool",
-    "PanoramicXRayDiseaseSegmentationTool",
-    "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
-    "PanoramicXRayJawStructureSegmentationTool",
+    # "PanoramicXRayToothIdDetectionTool",
+    # "PanoramicXRayBoneLossSegmentationTool",
+    # "PanoramicXRayDiseaseSegmentationTool",
+    # "PanoramicXRayPeriapicalLesionSubClassDetectionTool",
+    # "PanoramicXRayJawStructureSegmentationTool",
 
     "PeriapicalXRayDiseaseSegmentationTool",
-    "PeriapicalXRayAbnormalityClassificationTool",
     "PeriapicalXRayDiseaseClassificationTool",
 
     "CephalometricXRayLandmarkDetectionTool",
-    "CephalometricXRayCVMstatusClassificationTool",
+    "CephalometricXRayCVMstagesClassificationTool",
 
     "IntraoralImageConditionDetectionTool",
     "IntraoralImageGingivitisDetectionTool",
@@ -172,11 +171,10 @@ def get_all_tools_factories(
             temp_dir=temp_dir,
             device=device,
         )
-    
-    def f_cephalometric_cvm_status(device=None):
-        return CephalometricImageCVMstatusClassificationTool(
-            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_status_6classes.safetensors",
-            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_status_6classes.json",
+    def f_cephalometric_cvm_stages(device=None):
+        return CephalometricImageCVMstagesClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_6stages.safetensors",
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_6stages.json",
             temp_dir=temp_dir,
             device=device,
         )
@@ -295,22 +293,22 @@ def get_all_tools_factories(
         # "PanoramicXRayPeriapicalLesionSubClassDetectionTool": f_panoramic_periapical_lesion,
         # "PanoramicXRayDiseaseSegmentationTool": f_panoramic_disease_seg,
         # "PanoramicXRayJawStructureSegmentationTool": f_panoramic_jaw_structure,
-        # "PeriapicalXRayDiseaseSegmentationTool": f_periapical_disease_seg,
-        # "PeriapicalXRayAbnormalityClassificationTool": f_periapical_abnormality,
-        # "PeriapicalXRayDiseaseClassificationTool": f_periapical_disease_cls,
-        # "CephalometricXRayLandmarkDetectionTool": f_cephalometric_landmark,
-        "CephalometricXRayCVMstatusClassificationTool": f_cephalometric_cvm_status,
-        # "IntraoralImageConditionDetectionTool": f_intraoral_condition,
-        # "IntraoralImageGingivitisDetectionTool": f_intraoral_gingivitis,
-        # "IntraoralImageFenestrationDetectionTool": f_intraoral_fenestration,
-        # "IntraoralImageToothTypeDetectionTool": f_intraoral_tooth_type,
-        # "IntraoralImageMalocclusionIssuesDetectionTool": f_intraoral_malocclusion,
-        # "IntraoralImageImageLevelConditionDetectionTool": f_intraoral_image_level,
-        # "CytopathologyCellNucleusSegmentationTool": f_cytopathology_seg,
-        # "CytopathologyCellNucleusGradingTool": f_cytopathology_grading,
-        # "HistopathologyOSCCSegmentationTool": f_histopathology_oscc_seg,
-        # "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
-        # "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
+
+        "PeriapicalXRayDiseaseSegmentationTool": f_periapical_disease_seg,
+        "PeriapicalXRayDiseaseClassificationTool": f_periapical_disease_cls,
+        "CephalometricXRayLandmarkDetectionTool": f_cephalometric_landmark,
+        "CephalometricXRayCVMstagesClassificationTool": f_cephalometric_cvm_stages,
+        "IntraoralImageConditionDetectionTool": f_intraoral_condition,
+        "IntraoralImageGingivitisDetectionTool": f_intraoral_gingivitis,
+        "IntraoralImageFenestrationDetectionTool": f_intraoral_fenestration,
+        "IntraoralImageToothTypeDetectionTool": f_intraoral_tooth_type,
+        "IntraoralImageMalocclusionIssuesDetectionTool": f_intraoral_malocclusion,
+        "IntraoralImageImageLevelConditionDetectionTool": f_intraoral_image_level,
+        "CytopathologyCellNucleusSegmentationTool": f_cytopathology_seg,
+        "CytopathologyCellNucleusGradingTool": f_cytopathology_grading,
+        "HistopathologyOSCCSegmentationTool": f_histopathology_oscc_seg,
+        "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
+        "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
         # "MedicalRAGTool": f_rag,
     }
 
@@ -381,12 +379,6 @@ def get_tools(
         temp_dir=temp_dir,
         device=device
     )
-    # periapical_abnormality_classification_tool = PeriapicalXRayAbnormal7ClassificationTool(
-    #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.safetensors",
-    #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.json",
-    #     temp_dir=temp_dir,
-    #     device=device
-    # )
 
     periapical_disease_classification_tool = PeriapicalXRayDisease7ClassificationTool(
         checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_ViTL_ImageLevel_Periapical_x-ray_7diseases.bin",
@@ -394,7 +386,6 @@ def get_tools(
         temp_dir=temp_dir,
         device=device
     )
-
 
     # Cephalometric X-ray tools
     cephalometric_landmark_detection_tool = CephalometricXRayLandmarkDetectionTool(
@@ -404,6 +395,13 @@ def get_tools(
         image_size=(512, 512),
         temp_dir=temp_dir,
         device=device
+    )
+
+    cephalometric_cvm_stages_classification_tool = CephalometricImageCVMstagesClassificationTool(
+        checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_6stages.safetensors",
+        coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_6stages.json",
+        temp_dir=temp_dir,
+        device=device,
     )
 
     # Intraoral Image tools (paths use intraoral_image)
@@ -514,10 +512,10 @@ def get_tools(
         # panoramic_bone_loss_segmentation_tool,
 
         periapical_disease_segmentation_tool,
-        # periapical_abnormality_classification_tool,
         periapical_disease_classification_tool,
 
         cephalometric_landmark_detection_tool,
+        cephalometric_cvm_stages_classification_tool,
 
         intraoral_condition_detection_tool,
         intraoral_gingivitis_detection_tool,

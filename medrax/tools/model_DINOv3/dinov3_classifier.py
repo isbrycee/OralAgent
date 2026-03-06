@@ -18,7 +18,7 @@ class DinoV3Classifier(nn.Module):
         config = AutoConfig.from_pretrained(_CONFIG_DIR, local_files_only=True)
         self.backbone = AutoModel.from_config(config)
         
-        if task_name == "cephalometric_cvm_status_9class":
+        if task_name == "cephalometric_xray_cvm_stages_classification":
             self.head = nn.Sequential(
                 nn.BatchNorm1d(hidden_size, affine=True),
                 nn.Linear(hidden_size, 256),
