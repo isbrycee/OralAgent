@@ -13,6 +13,7 @@ from .periapical_radiograph.abnormality7Classification import *
 from .periapical_radiograph.disease7Classification import *
 
 from .cephalometric_radiograph.cephalometricLandmarkDetection import *
+from .cephalometric_radiograph.cephalometricCVMstatusClassification import *
 
 from .intraoral_image.conditionDetection import *
 from .intraoral_image.gingivitisDetection import *
@@ -41,10 +42,11 @@ DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
     "PanoramicXRayJawStructureSegmentationTool",
 
     "PeriapicalXRayDiseaseSegmentationTool",
-    # "PeriapicalXRayAbnormalityClassificationTool",
+    "PeriapicalXRayAbnormalityClassificationTool",
     "PeriapicalXRayDiseaseClassificationTool",
 
     "CephalometricXRayLandmarkDetectionTool",
+    "CephalometricXRayCVMstatusClassificationTool",
 
     "IntraoralImageConditionDetectionTool",
     "IntraoralImageGingivitisDetectionTool",
@@ -66,24 +68,26 @@ DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
 def get_all_tools_factories(
     model_dir: str,
     temp_dir: str,
-    device: str,
+    device: str = "cuda",
     rag_config: Optional[Any] = None,
+    device_map: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Callable[[], Any]]:
     """
-    Return a dict of tool_name -> factory (callable that returns an initialized tool instance).
-    Used by main.py to instantiate only the selected tools.
+    Return a dict of tool_name -> factory(device) callable.
+    Each factory accepts an optional device kwarg; the caller handles device selection and OOM fallback.
 
     Args:
         model_dir: Path to model weights and configs.
         temp_dir: Temporary directory for intermediate files.
-        device: Device (e.g. "cuda", "cpu").
+        device: Unused directly; kept for API compatibility.
         rag_config: Optional RAGConfig for MedicalRAGTool.
+        device_map: Unused directly; kept for API compatibility.
 
     Returns:
-        Dict mapping tool name to a no-arg callable that returns the tool instance.
+        Dict mapping tool name to a callable factory(device=None).
     """
     # Panoramic X-ray
-    def f_panoramic_tooth():
+    def f_panoramic_tooth(device=None):
         return PanoramicXRayToothDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_panoramic_x-ray_32ToothID.pth",
@@ -92,7 +96,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_panoramic_bone_loss():
+    def f_panoramic_bone_loss(device=None):
         return PanoramicXRayBoneLossSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_1disease_boneLoss.pth",
@@ -102,7 +106,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_panoramic_periapical_lesion():
+    def f_panoramic_periapical_lesion(device=None):
         return PanoramicXRayPeriapicalLesionSubClassDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_r50_panoramic_x-ray_3subclasses_periapicalLesion.pth",
@@ -111,7 +115,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_panoramic_disease_seg():
+    def f_panoramic_disease_seg(device=None):
         return PanoramicXRayDiseaseSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_11diseases.pth",
@@ -121,7 +125,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_panoramic_jaw_structure():
+    def f_panoramic_jaw_structure(device=None):
         return PanoramicXRayJawStructureSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_panoramic_x-ray_2structures_mandibularCanal_maxillarySinus.pth",
@@ -132,7 +136,7 @@ def get_all_tools_factories(
         )
 
     # Periapical X-ray
-    def f_periapical_disease_seg():
+    def f_periapical_disease_seg(device=None):
         return PeriapicalXRayDiseaseSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_SwinL_periapical_x-ray_6diseases.pth",
@@ -142,7 +146,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_periapical_abnormality():
+    def f_periapical_abnormality(device=None):
         return PeriapicalXRayAbnormal7ClassificationTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.safetensors",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Periapical_7abnormalities.json",
@@ -159,7 +163,7 @@ def get_all_tools_factories(
         )
 
     # Cephalometric X-ray
-    def f_cephalometric_landmark():
+    def f_cephalometric_landmark(device=None):
         return CephalometricXRayLandmarkDetectionTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth",
             prototype_path=f"{model_dir}/config_Visual_Expert_Model_CeLDA_UNet2D_cephalometric_x-ray_29Landmarks.pth",
@@ -168,9 +172,17 @@ def get_all_tools_factories(
             temp_dir=temp_dir,
             device=device,
         )
+    
+    def f_cephalometric_cvm_status(device=None):
+        return CephalometricImageCVMstatusClassificationTool(
+            checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_status_6classes.safetensors",
+            coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_status_6classes.json",
+            temp_dir=temp_dir,
+            device=device,
+        )
 
     # Intraoral Image (use intraoral_image in paths, consistent with main.py)
-    def f_intraoral_condition():
+    def f_intraoral_condition(device=None):
         return IntraoralImageConditionDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_4conditions.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_4conditions.pth",
@@ -179,7 +191,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_intraoral_gingivitis():
+    def f_intraoral_gingivitis(device=None):
         return IntraoralImageGingivitisDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_gingivitis.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_gingivitis.pth",
@@ -188,7 +200,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_intraoral_fenestration():
+    def f_intraoral_fenestration(device=None):
         return IntraoralImageFenestrationDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_fenestration.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_fenestration.pth",
@@ -197,7 +209,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_intraoral_tooth_type():
+    def f_intraoral_tooth_type(device=None):
         return IntraoralImageToothTypeDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_8ToothTypes.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_8ToothTypes.pth",
@@ -206,7 +218,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_intraoral_malocclusion():
+    def f_intraoral_malocclusion(device=None):
         return IntraoralImageMalocclusionIssuesDetectionTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_9malocclusionIssues.py",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINO_SwinL_5scale_intraoral_image_9malocclusionIssues.pth",
@@ -215,7 +227,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_intraoral_image_level():
+    def f_intraoral_image_level(device=None):
         return IntraoralImageAbnormal9ClassificationTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.safetensors",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_intraoral_image_9conditions.json",
@@ -224,7 +236,7 @@ def get_all_tools_factories(
         )
 
     # Cytopathology
-    def f_cytopathology_seg():
+    def f_cytopathology_seg(device=None):
         return CytopathologyCellNucleusSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_7conditions.pth",
@@ -234,7 +246,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_cytopathology_grading():
+    def f_cytopathology_grading(device=None):
         return CytopathologyCellNucleusGradingTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Cytopathology_4gradings.pth",
@@ -245,7 +257,7 @@ def get_all_tools_factories(
         )
 
     # Histopathology
-    def f_histopathology_oscc_seg():
+    def f_histopathology_oscc_seg(device=None):
         return HistopathologyOSCCSegmentationTool(
             config_path=f"{model_dir}/config_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.yaml",
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_MaskDINO_r50_Histopathology_OSCC_Segmentation.pth",
@@ -255,7 +267,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_histopathology_osmf_oscc():
+    def f_histopathology_osmf_oscc(device=None):
         return HistopathologyOSCC5ClassificationTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.safetensors",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_OSMF_OSCC_5conditions.json",
@@ -263,7 +275,7 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_histopathology_leukoplakia():
+    def f_histopathology_leukoplakia(device=None):
         return HistopathologyLeukoplakia3ClassificationTool(
             checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.safetensors",
             coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_Histopathology_Leukoplakia_OSCC_3diseases.json",
@@ -271,33 +283,35 @@ def get_all_tools_factories(
             device=device,
         )
 
-    def f_rag():
+    def f_rag(device=None):
         if rag_config is None:
             raise ValueError("MedicalRAGTool requires rag_config to be passed to get_all_tools_factories.")
-        return RAGTool(config=rag_config)
+        cfg = rag_config if device is None else rag_config.model_copy(update={"device": device})
+        return RAGTool(config=cfg)
 
     return {
-        "PanoramicXRayToothIdDetectionTool": f_panoramic_tooth,
-        "PanoramicXRayBoneLossSegmentationTool": f_panoramic_bone_loss,
-        "PanoramicXRayPeriapicalLesionSubClassDetectionTool": f_panoramic_periapical_lesion,
-        "PanoramicXRayDiseaseSegmentationTool": f_panoramic_disease_seg,
-        "PanoramicXRayJawStructureSegmentationTool": f_panoramic_jaw_structure,
-        "PeriapicalXRayDiseaseSegmentationTool": f_periapical_disease_seg,
-        "PeriapicalXRayAbnormalityClassificationTool": f_periapical_abnormality,
-        "PeriapicalXRayDiseaseClassificationTool": f_periapical_disease_cls,
-        "CephalometricXRayLandmarkDetectionTool": f_cephalometric_landmark,
-        "IntraoralImageConditionDetectionTool": f_intraoral_condition,
-        "IntraoralImageGingivitisDetectionTool": f_intraoral_gingivitis,
-        "IntraoralImageFenestrationDetectionTool": f_intraoral_fenestration,
-        "IntraoralImageToothTypeDetectionTool": f_intraoral_tooth_type,
-        "IntraoralImageMalocclusionIssuesDetectionTool": f_intraoral_malocclusion,
-        "IntraoralImageImageLevelConditionDetectionTool": f_intraoral_image_level,
-        "CytopathologyCellNucleusSegmentationTool": f_cytopathology_seg,
-        "CytopathologyCellNucleusGradingTool": f_cytopathology_grading,
-        "HistopathologyOSCCSegmentationTool": f_histopathology_oscc_seg,
-        "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
-        "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
-        "MedicalRAGTool": f_rag,
+        # "PanoramicXRayToothIdDetectionTool": f_panoramic_tooth,
+        # "PanoramicXRayBoneLossSegmentationTool": f_panoramic_bone_loss,
+        # "PanoramicXRayPeriapicalLesionSubClassDetectionTool": f_panoramic_periapical_lesion,
+        # "PanoramicXRayDiseaseSegmentationTool": f_panoramic_disease_seg,
+        # "PanoramicXRayJawStructureSegmentationTool": f_panoramic_jaw_structure,
+        # "PeriapicalXRayDiseaseSegmentationTool": f_periapical_disease_seg,
+        # "PeriapicalXRayAbnormalityClassificationTool": f_periapical_abnormality,
+        # "PeriapicalXRayDiseaseClassificationTool": f_periapical_disease_cls,
+        # "CephalometricXRayLandmarkDetectionTool": f_cephalometric_landmark,
+        "CephalometricXRayCVMstatusClassificationTool": f_cephalometric_cvm_status,
+        # "IntraoralImageConditionDetectionTool": f_intraoral_condition,
+        # "IntraoralImageGingivitisDetectionTool": f_intraoral_gingivitis,
+        # "IntraoralImageFenestrationDetectionTool": f_intraoral_fenestration,
+        # "IntraoralImageToothTypeDetectionTool": f_intraoral_tooth_type,
+        # "IntraoralImageMalocclusionIssuesDetectionTool": f_intraoral_malocclusion,
+        # "IntraoralImageImageLevelConditionDetectionTool": f_intraoral_image_level,
+        # "CytopathologyCellNucleusSegmentationTool": f_cytopathology_seg,
+        # "CytopathologyCellNucleusGradingTool": f_cytopathology_grading,
+        # "HistopathologyOSCCSegmentationTool": f_histopathology_oscc_seg,
+        # "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
+        # "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
+        # "MedicalRAGTool": f_rag,
     }
 
 

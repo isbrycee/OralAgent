@@ -17,10 +17,20 @@ class DinoV3Classifier(nn.Module):
         # 只从本地 config 构建 backbone 结构，不加载权重（避免 HF repo id 校验）
         config = AutoConfig.from_pretrained(_CONFIG_DIR, local_files_only=True)
         self.backbone = AutoModel.from_config(config)
-                
-        self.head = nn.Sequential(
-            nn.BatchNorm1d(hidden_size, affine=True),
-            nn.Linear(hidden_size, num_classes))
+        
+        if task_name == "cephalometric_cvm_status_9class":
+            self.head = nn.Sequential(
+                nn.BatchNorm1d(hidden_size, affine=True),
+                nn.Linear(hidden_size, 256),
+                nn.ReLU(),
+                nn.Dropout(0.1),
+                nn.Linear(256, num_classes)
+            )
+        else:
+            self.head = nn.Sequential(
+                    nn.BatchNorm1d(hidden_size, affine=True),
+                    nn.Linear(hidden_size, num_classes)
+            )
     
     def forward(self, pixel_values):
         # Extract features from backbone
