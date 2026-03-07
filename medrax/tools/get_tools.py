@@ -33,7 +33,7 @@ from .histopathology.Leukoplakia3Classification import *
 from .rag import *
 
 
-# Default list of tool names to use when initializing the agent (single source of truth)
+# Default list of tool names to use when initializing the agent (to be used in main.py)
 DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
     # "PanoramicXRayToothIdDetectionTool",
     # "PanoramicXRayBoneLossSegmentationTool",
@@ -504,6 +504,7 @@ def get_tools(
     # RAG tool
     # medical_rag_tool = RAGTool(config=rag_config)
 
+    # List of tool names to use when initializing the agent (to be used in launch_agent.py)
     return [
         # panoramic_tooth_detection_tool,
         # panoramic_periapical_lesion_tool,

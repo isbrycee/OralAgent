@@ -33,4 +33,5 @@ Do not provide excessive explanations, limitations or next‑step action suggest
 
 [MODALITY_SECTION_TEMPLATE]
 Image modality: {modality}
-Please autonomously select the most appropriate tools based on the image modality above.
+Please autonomously select the most appropriate tools based on the image modality above. 
+Note that you should use as many tools as possible to perform comprehensive detection on {modality}.

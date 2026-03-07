@@ -54,7 +54,9 @@ class IntraoralImageAbnormal9ClassificationTool(BaseTool):
 
     name: str = "intraoral_image_image-level_abnormality_classification"
     description: str = (
-        "Classifies intraoral images into 9 categories related to image-level abnormalities, including gingivitis, orthodontic braces, dental calculus, oral cancer, dental caries, defect of dentition, tooth discoloration, oral ulcer, and normal."
+        "Detects image-level abnormalities in intraoral images. "
+        "It identifies nine condition types:"
+        "gingivitis, orthodontic braces, dental calculus, oral cancer, dental caries, defect of dentition, tooth discoloration, oral ulcer, and normal. "
         "Ensure the input intraoral image is of high resolution and quality for accurate classification."
     )
     
