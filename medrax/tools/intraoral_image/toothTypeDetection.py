@@ -49,9 +49,9 @@ class IntraoralImageToothTypeDetectionOutput(BaseModel):
 class IntraoralImageToothTypeDetectionTool(BaseTool):
     """Tool for performing dental morphology detection analysis on intraoral images."""
 
-    name: str = "intraoral_image_tooth_type_detection"
+    name: str = "intraoral_image_teeth_number_and_type_detection"
     description: str = (
-        "Detects tooth types in intraoral images. "
+        "Detects the number and types of all teeth in intraoral images. "
         "It identifies eight tooth types: tooth, 1st Molar, 1st Premolar, 2nd Molar, 2nd Premolar, Canine, Central Incisor, Lateral Incisor"
         "Returns detection visualization and a list of detected tooth type regions with their bounding boxes and confidence scores. "
         "Ensure the input intraoral image is of high quality for optimal performance."

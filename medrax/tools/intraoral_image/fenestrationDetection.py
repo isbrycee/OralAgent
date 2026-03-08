@@ -46,7 +46,7 @@ class IntraoralImageFenestrationDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Fenestration Detection Tool."""
 
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for fenestration detection")
-    confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
+    # confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
     fenestration_types: Optional[List[str]] = Field(
         None,
         description="Currently, only fenestration detection is supported. Please set this parameter to None or 'fenestration'." 

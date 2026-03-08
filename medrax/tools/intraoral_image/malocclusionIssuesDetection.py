@@ -46,7 +46,7 @@ class IntraoralImageMalocclusionIssuesDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Malocclusion Issues Detection Tool."""
 
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for malocclusion issues detection")
-    confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
+    # confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
     malocclusion_issue_types: Optional[List[str]] = Field(
         None,
         description="A list of malocclusion issue type names to detect. If set to None, all available types will be detected. "

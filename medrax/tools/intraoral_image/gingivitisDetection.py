@@ -46,7 +46,7 @@ class IntraoralImageGingivitisDetectionInput(BaseModel):
     """Input schema for the Intraoral Image Gingivitis Detection Tool."""
 
     image_path: str = Field(..., description="Path to the intraoral image file to be processed for gingivitis detection")
-    confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
+    # confidence: Optional[float] = Field(0.5, description="Confidence threshold for detection")
     gingivitis_types: Optional[List[str]] = Field(
         None,
         description="Currently, only severe gingivitis detection is supported. Please set this parameter to None or 'gingivitis'."

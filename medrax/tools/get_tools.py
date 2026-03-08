@@ -29,6 +29,8 @@ from .histopathology.OSCCSegmentation import *
 from .histopathology.OSCC5Classification import *
 from .histopathology.Leukoplakia3Classification import *
 
+from .oralgpt_series.OralGPT_Omni import OralGPTOmniTool
+
 ###################### for RAG ######################
 from .rag import *
 
@@ -287,6 +289,11 @@ def get_all_tools_factories(
         cfg = rag_config if device is None else rag_config.model_copy(update={"device": device})
         return RAGTool(config=cfg)
 
+    def f_oralgpt_omni(device=None):
+        """OralGPT-Omni: lookup pre-computed results from Excel by data index (no model run)."""
+        excel_path = f"/home/jinghao/projects/OralGPT-Agent/OralAgent/medrax/tools/oralgpt_series/results_MMOral-Uni_OralGPT-Omni.xlsx"
+        return OralGPTOmniTool(excel_path=excel_path, load_excel_on_init=True)
+
     return {
         # "PanoramicXRayToothIdDetectionTool": f_panoramic_tooth,
         # "PanoramicXRayBoneLossSegmentationTool": f_panoramic_bone_loss,
@@ -309,6 +316,7 @@ def get_all_tools_factories(
         "HistopathologyOSCCSegmentationTool": f_histopathology_oscc_seg,
         "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
         "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
+        "OralGPTOmniTool": f_oralgpt_omni,
         # "MedicalRAGTool": f_rag,
     }
 
@@ -487,6 +495,12 @@ def get_tools(
         device=device
     )
 
+    # OralGPT-Omni: pseudo tool, looks up pre-computed results from Excel by data index
+    oralgpt_omni_tool = OralGPTOmniTool(
+        excel_path=f"/home/jinghao/projects/OralGPT-Agent/OralAgent/medrax/tools/oralgpt_series/results_MMOral-Uni_OralGPT-Omni.xlsx",
+        load_excel_on_init=True,
+    )
+
     rag_config = RAGConfig(
         model="command-a-03-2025",  # Invalid in current version; TODO: support Qwen3 model
         embedding_model="Qwen/Qwen3-Embedding-8B",  # "0.6B, 4B, 8B"
@@ -531,5 +545,6 @@ def get_tools(
         histopathology_oscc_segmentation_tool,
         histopathology_osmf_oscc_classification_tool,
         histopathology_leukoplakia_oscc_classification_tool,
+        oralgpt_omni_tool,
         # medical_rag_tool,
     ]

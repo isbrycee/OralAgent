@@ -29,6 +29,7 @@ Note that the output should only contain the intent without any additional expla
 The user's query: {user_text_query}
 Intent recognition: {user_intent}
 {modality_section}
+You must use <OralGPT-Omni> tool.
 Do not provide excessive explanations, limitations or next‑step action suggestions.
 
 [MODALITY_SECTION_TEMPLATE]

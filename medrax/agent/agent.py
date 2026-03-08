@@ -255,7 +255,7 @@ class Agent:
         Returns:
             AgentState: The same state, with user message content possibly replaced by the enriched query.
         """
-
+        print(f"state: {state}")
         user_input = state["messages"][-1]
 
         if isinstance(user_input, ToolMessage) or isinstance(user_input, AIMessage):
@@ -267,9 +267,26 @@ class Agent:
         image_paths: List[Optional[str]] = []
         for msg in current_turn_messages:
             image_paths.extend(self.extract_image_paths_from_message(msg))
+        # 无论图片数量多少，都提取并写入 benchmark index，保证模型一定能看到
+        benchmark_index = self.extract_benchmark_index_from_messages(current_turn_messages)
         # Single-turn multi-image: skip intent recognition and modality detection, return state as-is.
         # Single image (or no image): we will run intent recognition and modality detection below and enrich the user query.
         if len(image_paths) > 1:
+            if benchmark_index is not None:
+                last_msg = state["messages"][-1]
+                last_content = last_msg.get("content") if isinstance(last_msg, dict) else getattr(last_msg, "content", None)
+                index_line = f"\nBenchmark case index: {benchmark_index}"
+                if isinstance(last_content, list):
+                    for item in last_content:
+                        if item.get("type") == "text" and not (item.get("text") or "").strip().startswith("image_path:"):
+                            if "Benchmark case index:" not in (item.get("text") or ""):
+                                item["text"] = (item.get("text") or "") + index_line
+                            break
+                elif isinstance(last_content, str) and "Benchmark case index:" not in last_content:
+                    if isinstance(last_msg, dict):
+                        state["messages"][-1]["content"] = last_content + index_line
+                    else:
+                        setattr(state["messages"][-1], "content", last_content + index_line)
             return state
 
         user_text_query = self.extract_text_content(user_input)
@@ -316,6 +333,9 @@ class Agent:
                 print(f"Modality classification error: {e}")
         if image_path:
             modality_section += f"\nImage file path (you MUST use this exact path for the image_path argument in tool calls): {image_path}"
+
+        if benchmark_index is not None:
+            modality_section += f"\nBenchmark case index: {benchmark_index}"
 
         user_intent = self.recognize_intent(user_text_query)
 
@@ -467,6 +487,47 @@ class Agent:
                         else:
                             paths.append(None)
         return paths
+
+    def extract_benchmark_index_from_messages(self, messages: List[Any]) -> Optional[Union[int, str]]:
+        """
+        从当前轮用户消息中解析 benchmark case 的 index（若请求中包含）。
+        兼容：请求中不包含 index 时返回 None，不报错。
+
+        Returns:
+            index 值（int 或 str），未找到则 None。
+        """
+        for msg in (messages or []):
+            content = msg.get("content") if isinstance(msg, dict) else getattr(msg, "content", None)
+            if content is None:
+                continue
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict) and item.get("type") == "image_url":
+                        url_obj = item.get("image_url")
+                        if isinstance(url_obj, dict) and "index" in url_obj:
+                            return url_obj["index"]
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        raw = (item.get("text") or "").strip()
+                        if raw.startswith("index:") or raw.startswith("benchmark_index:"):
+                            part = raw.split(":", 1)[1].strip().split()[0]
+                            try:
+                                return int(part)
+                            except ValueError:
+                                return part
+            if isinstance(content, str):
+                if "index:" in content:
+                    part = content.split("index:")[1].strip().split()[0]
+                    try:
+                        return int(part)
+                    except ValueError:
+                        return part
+                if "benchmark_index:" in content:
+                    part = content.split("benchmark_index:")[1].strip().split()[0]
+                    try:
+                        return int(part)
+                    except ValueError:
+                        return part
+        return None
 
     def recognize_intent(self, query: str) -> str:
         """
