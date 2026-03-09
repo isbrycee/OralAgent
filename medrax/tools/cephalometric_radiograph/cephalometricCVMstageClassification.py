@@ -112,7 +112,7 @@ class CephalometricImageCVMstagesClassificationTool(BaseTool):
     def _preprocess_image(self, image_path: str):
             """Preprocess the input image."""
             transform = transforms.Compose([
-                transforms.Resize((512, 512)),  # resize then center crop for deterministic input
+                transforms.Resize((1024, 1024)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
