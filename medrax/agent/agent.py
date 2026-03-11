@@ -75,6 +75,12 @@ class Agent:
         "Image modality: {modality}\n"
         "Please select the most appropriate tools based on the image modality above."
     )
+    # 多图（如 intraoral video）时注入的指令，与 ENRICHED_QUERY_TEMPLATE 中规则一致，因多图不会走 enriched query 替换
+    MULTI_IMAGE_NO_TOOLS_INSTRUCTION = (
+        "All tools are prohibited except the <OralGPT‑Omni> tool when handling questions related to intraoral video. "
+        "Provide your answer based on the multiple images and the <OralGPT‑Omni> tool's results, and refine its results with as much detailed, extensive elaboration as possible based on your own visual reasoning, without calling other tools. "
+        "Do not provide next‑step action suggestions.\n\n"
+    )
 
     def __init__(
         self,
@@ -263,30 +269,47 @@ class Agent:
 
         # Current turn: all user messages from the end of history until an AI/Tool message (state may contain multiple turns).
         current_turn_messages = self._get_current_turn_user_messages(state["messages"])
-        # Collect all image paths in the current turn (may span several user messages).
+        # Collect all image paths in the current turn (API 可传入多图，如 content 中多个 image_url；Gradio 仅单图).
         image_paths: List[Optional[str]] = []
         for msg in current_turn_messages:
             image_paths.extend(self.extract_image_paths_from_message(msg))
+        # 直接统计最后一则用户消息 content 中 image_url 块数量，避免因路径解析差异漏判多图
+        n_image_url_blocks = self._count_image_url_blocks_in_message(state["messages"][-1])
         # 无论图片数量多少，都提取并写入 benchmark index，保证模型一定能看到
         benchmark_index = self.extract_benchmark_index_from_messages(current_turn_messages)
-        # Single-turn multi-image: skip intent recognition and modality detection, return state as-is.
-        # Single image (or no image): we will run intent recognition and modality detection below and enrich the user query.
-        if len(image_paths) > 1:
-            if benchmark_index is not None:
-                last_msg = state["messages"][-1]
-                last_content = last_msg.get("content") if isinstance(last_msg, dict) else getattr(last_msg, "content", None)
-                index_line = f"\nBenchmark case index: {benchmark_index}"
-                if isinstance(last_content, list):
+        # 多图（仅 API 会传多图）：跳过意图识别与模态检测，直接进入模型。
+        is_multi_image = len(image_paths) > 1 or n_image_url_blocks > 1
+        logging.info(f"[preprocess] image_paths len={len(image_paths)}, n_image_url_blocks={n_image_url_blocks}, is_multi_image={is_multi_image}")
+        if is_multi_image:
+            last_msg = state["messages"][-1]
+            last_content = last_msg.get("content") if isinstance(last_msg, dict) else getattr(last_msg, "content", None)
+            if isinstance(last_content, list):
+                # 多图时不走 enriched query，需显式注入「禁止工具」指令，与 prompt 中 intraoral video 规则一致
+                instruction_injected = False
+                for item in last_content:
+                    if item.get("type") != "text":
+                        continue
+                    raw = (item.get("text") or "").strip()
+                    if raw.startswith("image_path:"):
+                        continue
+                    if "All tools are prohibited" not in (item.get("text") or ""):
+                        item["text"] = self.MULTI_IMAGE_NO_TOOLS_INSTRUCTION + (item.get("text") or "")
+                    instruction_injected = True
+                    break
+                if not instruction_injected:
+                    # 仅有图片无用户文字时，在末尾加一条仅含指令的 text 块
+                    last_content.append({"type": "text", "text": self.MULTI_IMAGE_NO_TOOLS_INSTRUCTION.strip()})
+                if benchmark_index is not None:
                     for item in last_content:
                         if item.get("type") == "text" and not (item.get("text") or "").strip().startswith("image_path:"):
                             if "Benchmark case index:" not in (item.get("text") or ""):
-                                item["text"] = (item.get("text") or "") + index_line
+                                item["text"] = (item.get("text") or "") + f"\nBenchmark case index: {benchmark_index}"
                             break
-                elif isinstance(last_content, str) and "Benchmark case index:" not in last_content:
-                    if isinstance(last_msg, dict):
-                        state["messages"][-1]["content"] = last_content + index_line
-                    else:
-                        setattr(state["messages"][-1], "content", last_content + index_line)
+            elif isinstance(last_content, str) and benchmark_index is not None and "Benchmark case index:" not in last_content:
+                if isinstance(last_msg, dict):
+                    state["messages"][-1]["content"] = last_content + f"\nBenchmark case index: {benchmark_index}"
+                else:
+                    setattr(state["messages"][-1], "content", last_content + f"\nBenchmark case index: {benchmark_index}")
             return state
 
         user_text_query = self.extract_text_content(user_input)
@@ -394,6 +417,18 @@ class Agent:
             break
         return text_content if text_content is not None else fallback_text
 
+    def _count_image_url_blocks_in_message(self, message: Union[Dict, Any]) -> int:
+        """统计单条消息 content 中 type 为 image_url 的块数量，用于可靠判断 API 多图请求。"""
+        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+        if not isinstance(content, list):
+            return 0
+        n = 0
+        for item in content:
+            t = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
+            if t == "image_url":
+                n += 1
+        return n
+
     def _get_current_turn_user_messages(self, messages: List[AnyMessage]) -> List[AnyMessage]:
         """
         从多轮 state 中取出「当前轮」的用户消息：从末尾向前，直到遇到 AIMessage 或 ToolMessage 为止。
@@ -473,19 +508,37 @@ class Agent:
         if content is None:
             return paths
         if isinstance(content, str):
+            # 支持一条消息内多行 "image_path: xxx"，全部解析出来，才能正确判断多图并跳过模态识别
             if "image_path:" in content:
-                paths.append(content.split("image_path:")[1].strip())
+                parts = content.split("image_path:")
+                for part in parts[1:]:
+                    path = part.strip().split("\n")[0].strip() if part.strip() else None
+                    if path:
+                        paths.append(path)
             return paths
         if isinstance(content, list):
             for item in content:
-                if isinstance(item, dict) and item.get("type") == "image_url":
-                    url_obj = item.get("image_url")
+                # 兼容 dict 或 LangChain content block 对象（如 message_part 有 .type / .image_url）
+                item_type = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
+                url_obj = item.get("image_url") if isinstance(item, dict) else getattr(item, "image_url", None)
+                if item_type == "image_url" and url_obj is not None:
                     if isinstance(url_obj, dict):
                         p = url_obj.get("image_path") or url_obj.get("url")
-                        if p and isinstance(p, str):
-                            paths.append(p.strip())
-                        else:
-                            paths.append(None)
+                    else:
+                        p = getattr(url_obj, "image_path", None) or getattr(url_obj, "url", None)
+                    if p and isinstance(p, str):
+                        paths.append(p.strip())
+                    else:
+                        paths.append(None)
+                elif item_type == "text":
+                    raw = (item.get("text") or "") if isinstance(item, dict) else (getattr(item, "text", None) or "")
+                    raw = (raw or "").strip()
+                    if "image_path:" in raw:
+                        parts = raw.split("image_path:")
+                        for part in parts[1:]:
+                            path = part.strip().split("\n")[0].strip() if part.strip() else None
+                            if path:
+                                paths.append(path)
         return paths
 
     def extract_benchmark_index_from_messages(self, messages: List[Any]) -> Optional[Union[int, str]]:

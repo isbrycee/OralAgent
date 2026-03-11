@@ -405,12 +405,12 @@ def get_tools(
         device=device
     )
 
-    cephalometric_cvm_stages_classification_tool = CephalometricImageCVMstagesClassificationTool(
-        checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_4stages.safetensors",
-        coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_4stages.json",
-        temp_dir=temp_dir,
-        device=device,
-    )
+    # cephalometric_cvm_stages_classification_tool = CephalometricImageCVMstagesClassificationTool(
+    #     checkpoint_path=f"{model_dir}/OralGPT_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_4stages.safetensors",
+    #     coco_names_path=f"{model_dir}/categories_Visual_Expert_Model_DINOv3_ImageLevel_cephalometric_x-ray_CVM_4stages.json",
+    #     temp_dir=temp_dir,
+    #     device=device,
+    # )
 
     # Intraoral Image tools (paths use intraoral_image)
     intraoral_condition_detection_tool = IntraoralImageConditionDetectionTool(
@@ -530,7 +530,7 @@ def get_tools(
         periapical_disease_classification_tool,
 
         cephalometric_landmark_detection_tool,
-        cephalometric_cvm_stages_classification_tool,
+        # cephalometric_cvm_stages_classification_tool,
 
         intraoral_condition_detection_tool,
         intraoral_gingivitis_detection_tool,
