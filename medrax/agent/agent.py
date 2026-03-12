@@ -77,9 +77,7 @@ class Agent:
     )
     # 多图（如 intraoral video）时注入的指令，与 ENRICHED_QUERY_TEMPLATE 中规则一致，因多图不会走 enriched query 替换
     MULTI_IMAGE_NO_TOOLS_INSTRUCTION = (
-        "All tools are prohibited except the <OralGPT‑Omni> tool when handling questions related to intraoral video. "
-        "Provide your answer based on the multiple images and the <OralGPT‑Omni> tool's results, and refine its results with as much detailed, extensive elaboration as possible based on your own visual reasoning, without calling other tools. "
-        "Do not provide next‑step action suggestions.\n\n"
+        "When handling intraoral‑video queries, all tools except <OralGPT‑Omni> are prohibited. Responses must rely on the intraoral video and the outputs of <OralGPT‑Omni>, and should be thoroughly refined using your own visual reasoning."
     )
 
     def __init__(
@@ -517,8 +515,8 @@ class Agent:
                         paths.append(path)
             return paths
         if isinstance(content, list):
+            # 先只从 image_url 块收集路径（用于数量判断）
             for item in content:
-                # 兼容 dict 或 LangChain content block 对象（如 message_part 有 .type / .image_url）
                 item_type = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
                 url_obj = item.get("image_url") if isinstance(item, dict) else getattr(item, "image_url", None)
                 if item_type == "image_url" and url_obj is not None:
@@ -530,15 +528,20 @@ class Agent:
                         paths.append(p.strip())
                     else:
                         paths.append(None)
-                elif item_type == "text":
-                    raw = (item.get("text") or "") if isinstance(item, dict) else (getattr(item, "text", None) or "")
-                    raw = (raw or "").strip()
-                    if "image_path:" in raw:
-                        parts = raw.split("image_path:")
-                        for part in parts[1:]:
-                            path = part.strip().split("\n")[0].strip() if part.strip() else None
-                            if path:
-                                paths.append(path)
+            # 若本条消息没有任何 image_url 块，则从 text 块解析 image_path:（兼容服务端 API 仅用 text 传图的情况）
+            # 若有 image_url 块则不再从 text 解析，避免网页端「1 张图 = image_url + text(image_path:)」被重复计为 2 张
+            if not paths:
+                for item in content:
+                    item_type = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
+                    if item_type == "text":
+                        raw = (item.get("text") or "") if isinstance(item, dict) else (getattr(item, "text", None) or "")
+                        raw = (raw or "").strip()
+                        if "image_path:" in raw:
+                            parts = raw.split("image_path:")
+                            for part in parts[1:]:
+                                path = part.strip().split("\n")[0].strip() if part.strip() else None
+                                if path:
+                                    paths.append(path)
         return paths
 
     def extract_benchmark_index_from_messages(self, messages: List[Any]) -> Optional[Union[int, str]]:

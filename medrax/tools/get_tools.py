@@ -47,7 +47,7 @@ DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
     "PeriapicalXRayDiseaseClassificationTool",
 
     "CephalometricXRayLandmarkDetectionTool",
-    "CephalometricXRayCVMstagesClassificationTool",
+    # "CephalometricXRayCVMstagesClassificationTool",
 
     "IntraoralImageConditionDetectionTool",
     "IntraoralImageGingivitisDetectionTool",
@@ -62,7 +62,8 @@ DEFAULT_SELECTED_TOOL_NAMES: List[str] = [
     "HistopathologyLeukoplakiaOSCCClassificationTool",
     "HistopathologyOSMFOSCCClassificationTool",
     "HistopathologyOSCCSegmentationTool",
-    # "MedicalRAGTool",
+    
+    "OralRAG",
 ]
 
 
@@ -81,7 +82,7 @@ def get_all_tools_factories(
         model_dir: Path to model weights and configs.
         temp_dir: Temporary directory for intermediate files.
         device: Unused directly; kept for API compatibility.
-        rag_config: Optional RAGConfig for MedicalRAGTool.
+        rag_config: Optional RAGConfig for OralRAG.
         device_map: Unused directly; kept for API compatibility.
 
     Returns:
@@ -285,7 +286,7 @@ def get_all_tools_factories(
 
     def f_rag(device=None):
         if rag_config is None:
-            raise ValueError("MedicalRAGTool requires rag_config to be passed to get_all_tools_factories.")
+            raise ValueError("OralRAG requires rag_config to be passed to get_all_tools_factories.")
         cfg = rag_config if device is None else rag_config.model_copy(update={"device": device})
         return RAGTool(config=cfg)
 
@@ -317,7 +318,7 @@ def get_all_tools_factories(
         "HistopathologyOSMFOSCCClassificationTool": f_histopathology_osmf_oscc,
         "HistopathologyLeukoplakiaOSCCClassificationTool": f_histopathology_leukoplakia,
         "OralGPTOmniTool": f_oralgpt_omni,
-        # "MedicalRAGTool": f_rag,
+        "OralRAG": f_rag,
     }
 
 
@@ -530,7 +531,6 @@ def get_tools(
         periapical_disease_classification_tool,
 
         cephalometric_landmark_detection_tool,
-        # cephalometric_cvm_stages_classification_tool,
 
         intraoral_condition_detection_tool,
         intraoral_gingivitis_detection_tool,
@@ -545,6 +545,7 @@ def get_tools(
         histopathology_oscc_segmentation_tool,
         histopathology_osmf_oscc_classification_tool,
         histopathology_leukoplakia_oscc_classification_tool,
+
         oralgpt_omni_tool,
         # medical_rag_tool,
     ]
